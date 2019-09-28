@@ -64,8 +64,8 @@ class Feature_generator():
             # project point cloud to 2d map. clac in which grid point is.
             # * the coordinates of x and y are exchanged here
             # (row <-> x, column <-> y)
-            pos_x = bcu.F2I(points[i, 0], self.range, inv_res_x)
-            pos_y = bcu.F2I(points[i, 1], self.range, inv_res_y)
+            pos_x = bcu.F2I(points[i, 1], self.range, inv_res_x)  # col
+            pos_y = bcu.F2I(points[i, 0], self.range, inv_res_y)  # row
             if(pos_x >= self.width or pos_x < 0 or
                pos_y >= self.height or pos_y < 0):
                 self.map_idx[i] = -1
