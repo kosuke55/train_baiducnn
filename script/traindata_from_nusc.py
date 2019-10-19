@@ -285,7 +285,7 @@ plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
 # So need to change the order of out_feature.
 # print(out_feature)
 print("out_featere.shape" + str(out_feature.shape))
-out_feature =  np.flip(np.flip(out_feature, axis=1), axis=2)
+out_feature = np.flip(np.flip(out_feature, axis=1), axis=2)
 
 with h5py.File('nusc_baidu.h5', 'w') as f:
     # transform data into caffe format
@@ -297,3 +297,15 @@ with h5py.File('nusc_baidu.h5', 'w') as f:
         in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_feature.shape)
     f.create_dataset('input', dtype=np.float, data=in_feature)
+
+# debug now. this may be better
+# out_feature = np.transpose(
+#     out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+# in_feature = np.transpose(
+#     in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+# f = h5py.File("nusc_baidu_2.h5", "w")
+# f.create_dataset("data", in_feature.shape, dtype="f8")
+# f.create_dataset("label", out_feature.shape, dtype="f8")
+# f["data"][:] = in_feature.astype("f8")
+# f["label"][:] = out_feature.astype("f8")
+# f.close

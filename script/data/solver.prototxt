@@ -1,0 +1,18 @@
+net: "simple_network.prototxt"
+
+test_interval: 1
+test_iter: 1
+display: 1000
+
+# The base learning rate, momentum and the weight decay of the network.
+base_lr: 0.3
+momentum: 0.3
+lr_policy: "fixed"
+
+# The maximum number of iterations
+max_iter: 10
+
+# snapshot intermediate results
+snapshot_prefix: "nusc_baidu"
+
+solver_mode: GPU
