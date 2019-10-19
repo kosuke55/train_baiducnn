@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 
 """
 under development.
@@ -30,7 +31,6 @@ def view_points(points: np.ndarray,
     points = np.concatenate((points, np.ones((1, nbr_points))))
     points = np.dot(viewpad, points)
     points = points[:3, :]
-
     if normalize:
         points = points / points[2:3, :].repeat(3, 0).reshape(3, nbr_points)
 
@@ -72,8 +72,12 @@ def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
 
 grid_range = 60
 size = 640
+# size = 100
+rows = 640
+cols = 640
 
 gsize = 2 * grid_range / size
+
 # center -> x, y
 out_feature = np.zeros((1, size, size, 6))
 print(out_feature.shape)
@@ -162,8 +166,10 @@ for box_idx, box in enumerate(boxes):
 
     box2d_center = box2d.mean(axis=0)
 
+    # start from lefght bottom, go right.
     for i in range(search_area_left_idx, search_area_right_idx):
         for j in range(search_area_bottom_idx, search_area_top_idx):
+            # grid_center is in meter coords
             grid_center = np.array([grid_centers[i], grid_centers[j]])
             # print(i*len(grid_centers) + j)
             fill_area = np.array([[(grid_center[0] - gsize / 2),
@@ -176,10 +182,10 @@ for box_idx, box in enumerate(boxes):
                                    (grid_center[1] - gsize / 2)]])
             if(points_in_box2d(box2d, grid_center)):
                 plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
-                # object center x
-                out_feature[0, i, j, 0] = box2d_center[0]
-                # object center y
-                out_feature[0, i, j, 1] = box2d_center[1]
+                # grid center to object center dx
+                out_feature[0, i, j, 0] = box2d_center[0] - grid_center[0]
+                # grid center to object center dy
+                out_feature[0, i, j, 1] = box2d_center[1] - grid_center[1]
                 # objectness
                 out_feature[0, i, j, 2] = 1.
                 # positiveness
@@ -189,13 +195,18 @@ for box_idx, box in enumerate(boxes):
                 # class probability
                 out_feature[0, i, j, 5] = 1.
 
+
+# This is input feature
 feature_generator = fg.Feature_generator()
 feature_generator.generate(pc.points.T)
-print(pc.points.shape)
-for i in range(10):
-    print(pc.points.T[i])
+# print(pc.points.shape)
+# for i in range(10):
+#     print(pc.points.T[i])
+
 feature = feature_generator.feature
-print(feature.shape)
+# feature = feature_generator.feature[::-1]
+
+
 # feature = feature_generator.feature.T.reshape(
 #     1, 8, feature_generator.height, feature_generator.width)
 print(feature[feature != 0])
@@ -206,12 +217,18 @@ for i in range(8):
 grid_centers = (ticks + gsize / 2)[:len(ticks) - 1]
 
 # pos_y, pos_x, 8
+
 feature = feature.reshape(size, size, 8)
+in_feature = feature[np.newaxis, :, :, :]
+print("in_feature.shape = " + str(in_feature.shape))
+
 nonzero_idx = np.where(feature[:, :, 7] != 0)
 print(nonzero_idx)
 
 grid_center = np.array([grid_centers[size - 1 - nonzero_idx[0]],
                         grid_centers[size - 1 - nonzero_idx[1]]])
+# grid_center = np.array([grid_centers[nonzero_idx[0]],
+#                         grid_centers[nonzero_idx[1]]])
 
 fill_area = np.array([[(grid_center[0] - gsize / 2),
                        (grid_center[0] + gsize / 2),
@@ -221,8 +238,11 @@ fill_area = np.array([[(grid_center[0] - gsize / 2),
                        (grid_center[1] + gsize / 2),
                        (grid_center[1] - gsize / 2),
                        (grid_center[1] - gsize / 2)]])
+
 plt.fill(fill_area[0], fill_area[1], color="b", alpha=0.1)
 
+
+# just draw coords arrow
 fill_area = np.array([[(1 - gsize / 2),
                        (1 + gsize / 2),
                        (1 + gsize / 2),
@@ -231,6 +251,7 @@ fill_area = np.array([[(1 - gsize / 2),
                        (0 + gsize / 2),
                        (0 - gsize / 2),
                        (0 - gsize / 2)]])
+
 plt.fill(fill_area[0], fill_area[1], color="r", alpha=1)
 
 fill_area = np.array([[(0 - gsize / 2),
@@ -241,32 +262,38 @@ fill_area = np.array([[(0 - gsize / 2),
                        (1 + gsize / 2),
                        (1 - gsize / 2),
                        (1 - gsize / 2)]])
+
 plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
 
-print(grid_centers)
-gsize *= 10
-fill_area = np.array([[(grid_centers[10] - gsize / 2),
-                       (grid_centers[10] + gsize / 2),
-                       (grid_centers[10] + gsize / 2),
-                       (grid_centers[10] - gsize / 2)],
-                      [(grid_centers[10] + gsize / 2),
-                       (grid_centers[10] + gsize / 2),
-                       (grid_centers[10] - gsize / 2),
-                       (grid_centers[10] - gsize / 2)]])
-plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
+# print(grid_centers)
+# gsize *= 10
+# fill_area = np.array([[(grid_centers[10] - gsize / 2),
+#                        (grid_centers[10] + gsize / 2),
+#                        (grid_centers[10] + gsize / 2),
+#                        (grid_centers[10] - gsize / 2)],
+#                       [(grid_centers[10] + gsize / 2),
+#                        (grid_centers[10] + gsize / 2),
+#                        (grid_centers[10] - gsize / 2),
+#                        (grid_centers[10] - gsize / 2)]])
+# plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
 
-plt.show()
+# plt.show()
 
 # To do
 # save in_feature and out_feature as h5
 # The upper right is the first. Then go left.
 # So need to change the order of out_feature.
-print(out_feature)
-print(out_feature.shape)
+# print(out_feature)
+print("out_featere.shape" + str(out_feature.shape))
+out_feature =  np.flip(np.flip(out_feature, axis=1), axis=2)
 
 with h5py.File('nusc_baidu.h5', 'w') as f:
     # transform data into caffe format
     out_feature = np.transpose(
         out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_feature.shape)
-    f.create_dataset('data', dtype=np.float, data=out_feature)
+    f.create_dataset('output', dtype=np.float, data=out_feature)
+    in_feature = np.transpose(
+        in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+    print(in_feature.shape)
+    f.create_dataset('input', dtype=np.float, data=in_feature)
