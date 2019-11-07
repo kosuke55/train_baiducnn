@@ -14,6 +14,7 @@ print(in_feature.shape)
 # print(np.count_nonzero(in_feature))
 in_image = in_feature.reshape(640, 640, 8)
 print(in_image.shape)
+print(in_image[:, :, 0][in_image[:, :, 0] > 0.5])
 print(np.count_nonzero(in_image[:, :, 7]))
 
 out_feature = infh['output'].value
@@ -30,8 +31,12 @@ print(out_image.shape)
 
 
 cv2.imwrite("confidence_out.png", out_image)
-in_image = in_image[:, :, 7] * 255
-cv2.imwrite("confidence_in.png", in_image)
+# in_image = in_image[:, :, 7] * 255
+for i in range(8):
+    in_image = in_feature.reshape(640, 640, 8)
+    in_image = in_image[:, :, i]
+    in_image[np.where(in_image != 0)] = 255
+    cv2.imwrite("confidence_in_{}.png".format(i), in_image)
 
 
 # cv2.namedWindow('window')

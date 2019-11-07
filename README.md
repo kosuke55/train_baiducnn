@@ -1,7 +1,7 @@
-# Under Development
+## Under Development
 The following text is just a quote from the related repository descpription.  
 
-# 1. Citation of [autoware_perception description][1]
+## 1. Citation of [autoware_perception description][1]
 [1]:https://github.com/k0suke-murakami/autoware_perception/tree/feature/integration_baidu_seg/lidar_apollo_cnn_seg_detect
 
 Autoware package based on Baidu's object segmenter.
@@ -68,11 +68,11 @@ Computing Tab -> Detection/ lidar_detector -> `lidar_cnn_baidu_detect`. Configur
 * Pre trained models can be downloaded from the Apollo project repository.
 
 ----------------------------------
-# 2. Citation of  [apollo 3D Obstacle Percption description][2]
+## 2. Citation of  [apollo 3D Obstacle Percption description][2]
 [2]:https://github.com/ApolloAuto/apollo/blob/master/docs/specs/3d_obstacle_perception.md
 
 
-# 3D Obstacle Perception
+## 3D Obstacle Perception
 
 There are three main components of 3D obstacle perception:
 
