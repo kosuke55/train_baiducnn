@@ -5,7 +5,8 @@ layer {
   top: "data"
   top: "output"
   hdf5_data_param {
-    source: "nusc_baidu_confidence.txt"
+    source: "data/nusc_baidu_confidence.txt"
+    # source: "nusc_baidu_confidence.txt"
     batch_size: 1
   }
 }
@@ -765,14 +766,3 @@ layer {
   bottom: "output"
   top: "loss"
 }
-
-# layer {
-#   name: "reduction"
-#   type: "Reduction"
-#   bottom: "loss_arr"
-#   top: "loss"
-#   reduction_param {
-#     axis: 0 # reduce all dims after first
-#     operation: ASUM  # use absolute sum
-#   }
-# }
