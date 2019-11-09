@@ -82,7 +82,7 @@ gsize = 2 * grid_range / size
 # center -> x, y
 # out_feature = np.zeros((1, size, size, 6))
 out_feature = np.zeros((1, size, size, 1))
-loss_weight = np.full((1, size, size, 1), 0.5)
+loss_weight = np.full((1, size, size, 1), 0.000001)
 print(out_feature.shape)
 
 channel = 5
@@ -175,16 +175,16 @@ for box_idx, box in enumerate(boxes):
             # grid_center is in meter coords
             grid_center = np.array([grid_centers[i], grid_centers[j]])
             # print(i*len(grid_centers) + j)
-            fill_area = np.array([[(grid_center[0] - gsize / 2),
-                                   (grid_center[0] + gsize / 2),
-                                   (grid_center[0] + gsize / 2),
-                                   (grid_center[0] - gsize / 2)],
-                                  [(grid_center[1] + gsize / 2),
-                                   (grid_center[1] + gsize / 2),
-                                   (grid_center[1] - gsize / 2),
-                                   (grid_center[1] - gsize / 2)]])
+            # fill_area = np.array([[(grid_center[0] - gsize / 2),
+            #                        (grid_center[0] + gsize / 2),
+            #                        (grid_center[0] + gsize / 2),
+            #                        (grid_center[0] - gsize / 2)],
+            #                       [(grid_center[1] + gsize / 2),
+            #                        (grid_center[1] + gsize / 2),
+            #                        (grid_center[1] - gsize / 2),
+            #                        (grid_center[1] - gsize / 2)]])
             if(points_in_box2d(box2d, grid_center)):
-                plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
+                # plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
                 # only confidence
                 out_feature[0, i, j, 0] = 1.
                 loss_weight[0, i, j, 0] = 1.
@@ -237,40 +237,40 @@ grid_center = np.array([grid_centers[size - 1 - nonzero_idx[0]],
 # grid_center = np.array([grid_centers[nonzero_idx[0]],
 #                         grid_centers[nonzero_idx[1]]])
 
-fill_area = np.array([[(grid_center[0] - gsize / 2),
-                       (grid_center[0] + gsize / 2),
-                       (grid_center[0] + gsize / 2),
-                       (grid_center[0] - gsize / 2)],
-                      [(grid_center[1] + gsize / 2),
-                       (grid_center[1] + gsize / 2),
-                       (grid_center[1] - gsize / 2),
-                       (grid_center[1] - gsize / 2)]])
+# fill_area = np.array([[(grid_center[0] - gsize / 2),
+#                        (grid_center[0] + gsize / 2),
+#                        (grid_center[0] + gsize / 2),
+#                        (grid_center[0] - gsize / 2)],
+#                       [(grid_center[1] + gsize / 2),
+#                        (grid_center[1] + gsize / 2),
+#                        (grid_center[1] - gsize / 2),
+#                        (grid_center[1] - gsize / 2)]])
 
-plt.fill(fill_area[0], fill_area[1], color="b", alpha=0.1)
+# plt.fill(fill_area[0], fill_area[1], color="b", alpha=0.1)
 
 
-# just draw coords arrow
-fill_area = np.array([[(1 - gsize / 2),
-                       (1 + gsize / 2),
-                       (1 + gsize / 2),
-                       (1 - gsize / 2)],
-                      [(0 + gsize / 2),
-                       (0 + gsize / 2),
-                       (0 - gsize / 2),
-                       (0 - gsize / 2)]])
+# # just draw coords arrow
+# fill_area = np.array([[(1 - gsize / 2),
+#                        (1 + gsize / 2),
+#                        (1 + gsize / 2),
+#                        (1 - gsize / 2)],
+#                       [(0 + gsize / 2),
+#                        (0 + gsize / 2),
+#                        (0 - gsize / 2),
+#                        (0 - gsize / 2)]])
 
-plt.fill(fill_area[0], fill_area[1], color="r", alpha=1)
+# plt.fill(fill_area[0], fill_area[1], color="r", alpha=1)
 
-fill_area = np.array([[(0 - gsize / 2),
-                       (0 + gsize / 2),
-                       (0 + gsize / 2),
-                       (0 - gsize / 2)],
-                      [(1 + gsize / 2),
-                       (1 + gsize / 2),
-                       (1 - gsize / 2),
-                       (1 - gsize / 2)]])
+# fill_area = np.array([[(0 - gsize / 2),
+#                        (0 + gsize / 2),
+#                        (0 + gsize / 2),
+#                        (0 - gsize / 2)],
+#                       [(1 + gsize / 2),
+#                        (1 + gsize / 2),
+#                        (1 - gsize / 2),
+#                        (1 - gsize / 2)]])
 
-plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
+# plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
 
 # print(grid_centers)
 # gsize *= 10
