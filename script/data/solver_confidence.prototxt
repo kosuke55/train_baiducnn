@@ -1,7 +1,7 @@
 net: "data/train_confidence.prototxt"
 
 test_interval: 1
-test_iter: 100
+test_iter: 1
 display: 1
 
 # The base learning rate, momentum and the weight decay of the network.

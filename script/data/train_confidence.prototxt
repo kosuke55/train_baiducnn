@@ -4,6 +4,7 @@ layer {
   type: "HDF5Data"
   top: "data"
   top: "output"
+  top: "loss_weight"
   hdf5_data_param {
     source: "data/nusc_baidu_confidence.txt"
     # source: "nusc_baidu_confidence.txt"
@@ -745,6 +746,7 @@ layer {
   type: "Silence"
   bottom: "heading_pt"
 }
+
 layer {
   name: "Silence_[hight_pt]"
   type: "Silence"
@@ -759,10 +761,89 @@ layer {
   top: "confidence_score"
 }
 
-layer {
-  name: "confidence_loss"
-  type: "EuclideanLoss"
+layer{
+  name: "weighted_euclideam_loss"
+  type: "Python"
   bottom: "confidence_score"
   bottom: "output"
+  bottom: "loss_weight"
   top: "loss"
+  propagate_down: 1
+  propagate_down: 0
+  propagate_down: 0
+  loss_weight: 1
+  python_param {
+    module: "weighted_euclidean_loss"
+    layer: "WeightedEuclideanLossLayer"
+  }
 }
+
+# layer
+# {
+#   name: "subtraction_layer"
+#   type: "Eltwise"
+#   bottom: "output"
+#   bottom: "confidence_score"
+#   top: "diff"
+#   eltwise_param {
+#     operation: SUM
+#     coeff: 1
+#     coeff: -1
+#   }
+# }
+
+# layer {
+#   name: "reduction"
+#   type: "Reduction"
+#   bottom: "diff"
+#   top: "hoge"
+#   reduction_param {
+#     axis: 0 # reduce all dims after first
+#     operation: ASUM  # use absolute sum
+#   }
+# }
+
+# layer {
+#   name: "abs_layer"
+#   bottom: "diff"
+#   top: "loss_per_grid"
+#   type: "AbsVal"
+# }
+
+
+# layer {
+#   name: "prod_loss_weight"
+#   type: "Eltwise"
+#   # bottom: "loss_per_grid"
+#   bottom: "diff"
+#   bottom: "loss_weight"
+#   top: "weighted_loss_per_grid"
+#   eltwise_param { operation: PROD }
+# }
+
+
+# layer {
+#   name: "reduction"
+#   type: "Reduction"
+#   bottom: "weighted_loss_per_grid"
+#   # bottom: "diff"
+#   top: "loss"
+#   reduction_param {
+#     axis: 0 # reduce all dims after first
+#     operation: ASUM  # use absolute sum
+#   }
+# }
+
+# layer {
+#   name: "confidence_loss"
+#   type: "EuclideanLoss"
+#   bottom: "confidence_score"
+#   bottom: "output"
+#   top: "loss"
+# }
+
+# layer {
+#   name: "Silence_[loss_weight]"
+#   type: "Silence"
+#   bottom: "loss_weight"
+# }

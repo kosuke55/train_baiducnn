@@ -3,6 +3,7 @@
 
 """
 under development.
+python 3.7.3
 """
 
 import numpy as np
@@ -81,6 +82,7 @@ gsize = 2 * grid_range / size
 # center -> x, y
 # out_feature = np.zeros((1, size, size, 6))
 out_feature = np.zeros((1, size, size, 1))
+loss_weight = np.full((1, size, size, 1), 0.5)
 print(out_feature.shape)
 
 channel = 5
@@ -185,6 +187,7 @@ for box_idx, box in enumerate(boxes):
                 plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
                 # only confidence
                 out_feature[0, i, j, 0] = 1.
+                loss_weight[0, i, j, 0] = 1.
 
                 # grid center to object center dx
                 # out_feature[0, i, j, 0] = box2d_center[0] - grid_center[0]
@@ -297,6 +300,11 @@ with h5py.File('nusc_baidu_confidence.h5', 'w') as f:
         out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_feature.shape)
     f.create_dataset('output', dtype=np.float, data=out_feature)
+
+    loss_weight = np.transpose(
+        loss_weight, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+    f.create_dataset('loss_weight', dtype=np.float, data=loss_weight)
+
     in_feature = np.transpose(
         in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_feature.shape)

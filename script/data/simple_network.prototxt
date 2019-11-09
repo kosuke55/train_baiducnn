@@ -2,7 +2,7 @@ name: "nusc"
 layer {
   name: "nusc"
   type: "HDF5Data"
-  top: "input"
+  top: "data"
   top: "output"
   hdf5_data_param {
     source: "nusc_baidu.txt"

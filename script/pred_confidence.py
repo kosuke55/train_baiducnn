@@ -9,7 +9,7 @@ infh = h5py.File('nusc_baidu_confidence.h5', 'r')
 in_feature = infh['data'].value
 
 net = caffe.Net('data/pred_confidence.prototxt',
-                'nusc_baidu_confidence_iter_106.caffemodel',
+                'logs/nusc_baidu_confidence_iter_10000.caffemodel',
                 caffe.TEST)
 
 in_feature = infh['data'].value

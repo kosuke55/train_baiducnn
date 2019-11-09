@@ -8,26 +8,30 @@ import cv2
 infh = h5py.File('nusc_baidu_confidence.h5', 'r')
 infh.keys()
 in_feature = infh['data'].value
+print(in_feature.shape)
 in_feature = np.transpose(
     in_feature, (0, 3, 2, 1))  # NxCxHxW -> NxWxHxC
-print(in_feature.shape)
+
 # print(np.count_nonzero(in_feature))
 in_image = in_feature.reshape(640, 640, 8)
-print(in_image.shape)
-print(in_image[:, :, 0][in_image[:, :, 0] > 0.5])
-print(np.count_nonzero(in_image[:, :, 7]))
+# print(in_image.shape)
+# print(in_image[:, :, 0][in_image[:, :, 0] > 0.5])
+# print(np.count_nonzero(in_image[:, :, 7]))
 
 out_feature = infh['output'].value
 print(out_feature.shape)  # NxCxHxW
-print(out_feature[0, :, 0, 0])
+
+loss_weight = infh['loss_weight'].value
+print(loss_weight.shape)  # NxCxHxW
+# print(out_feature[0, :, 0, 0])
 
 out_feature = np.transpose(
     out_feature, (0, 3, 2, 1))  # NxCxHxW -> NxWxHxC
-print(out_feature.shape)
+# print(out_feature.shape)
 # print(np.count_nonzero(out_feature))
 out_image = out_feature.reshape(640, 640) * 255
-print(np.count_nonzero(out_image))
-print(out_image.shape)
+# print(np.count_nonzero(out_image))
+# print(out_image.shape)
 
 
 cv2.imwrite("confidence_out.png", out_image)
