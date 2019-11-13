@@ -82,7 +82,7 @@ gsize = 2 * grid_range / size
 # center -> x, y
 # out_feature = np.zeros((1, size, size, 6))
 out_feature = np.zeros((1, size, size, 1))
-loss_weight = np.full((1, size, size, 1), 0.000001)
+loss_weight = np.full((1, size, size, 1), 0.)
 print(out_feature.shape)
 
 channel = 5
@@ -152,8 +152,6 @@ for box_idx, box in enumerate(boxes):
     corners_height = corners3d[2, :]
     height = corners_height[0] - corners_height[2]
 
-    # plt.scatter(box2d[:, 0], box2d[:, 1], marker='^', s=100)
-
     # find search_area
     box2d_left = box2d[:, 0].min()
     box2d_right = box2d[:, 0].max()
@@ -174,34 +172,9 @@ for box_idx, box in enumerate(boxes):
         for j in range(search_area_bottom_idx, search_area_top_idx):
             # grid_center is in meter coords
             grid_center = np.array([grid_centers[i], grid_centers[j]])
-            # print(i*len(grid_centers) + j)
-            # fill_area = np.array([[(grid_center[0] - gsize / 2),
-            #                        (grid_center[0] + gsize / 2),
-            #                        (grid_center[0] + gsize / 2),
-            #                        (grid_center[0] - gsize / 2)],
-            #                       [(grid_center[1] + gsize / 2),
-            #                        (grid_center[1] + gsize / 2),
-            #                        (grid_center[1] - gsize / 2),
-            #                        (grid_center[1] - gsize / 2)]])
             if(points_in_box2d(box2d, grid_center)):
-                # plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
-                # only confidence
                 out_feature[0, i, j, 0] = 1.
                 loss_weight[0, i, j, 0] = 1.
-
-                # grid center to object center dx
-                # out_feature[0, i, j, 0] = box2d_center[0] - grid_center[0]
-                # grid center to object center dy
-                # out_feature[0, i, j, 1] = box2d_center[1] - grid_center[1]
-                # objectness
-                # out_feature[0, i, j, 2] = 1.
-                # positiveness
-                # out_feature[0, i, j, 3] = 1.
-                # object_hight
-                # out_feature[0, i, j, 4] = height
-                # class probability
-                # out_feature[0, i, j, 5] = 1.
-
 
 # This is input feature
 feature_generator = fg.Feature_generator()
@@ -234,67 +207,12 @@ print(nonzero_idx)
 
 grid_center = np.array([grid_centers[size - 1 - nonzero_idx[0]],
                         grid_centers[size - 1 - nonzero_idx[1]]])
-# grid_center = np.array([grid_centers[nonzero_idx[0]],
-#                         grid_centers[nonzero_idx[1]]])
 
-# fill_area = np.array([[(grid_center[0] - gsize / 2),
-#                        (grid_center[0] + gsize / 2),
-#                        (grid_center[0] + gsize / 2),
-#                        (grid_center[0] - gsize / 2)],
-#                       [(grid_center[1] + gsize / 2),
-#                        (grid_center[1] + gsize / 2),
-#                        (grid_center[1] - gsize / 2),
-#                        (grid_center[1] - gsize / 2)]])
-
-# plt.fill(fill_area[0], fill_area[1], color="b", alpha=0.1)
-
-
-# # just draw coords arrow
-# fill_area = np.array([[(1 - gsize / 2),
-#                        (1 + gsize / 2),
-#                        (1 + gsize / 2),
-#                        (1 - gsize / 2)],
-#                       [(0 + gsize / 2),
-#                        (0 + gsize / 2),
-#                        (0 - gsize / 2),
-#                        (0 - gsize / 2)]])
-
-# plt.fill(fill_area[0], fill_area[1], color="r", alpha=1)
-
-# fill_area = np.array([[(0 - gsize / 2),
-#                        (0 + gsize / 2),
-#                        (0 + gsize / 2),
-#                        (0 - gsize / 2)],
-#                       [(1 + gsize / 2),
-#                        (1 + gsize / 2),
-#                        (1 - gsize / 2),
-#                        (1 - gsize / 2)]])
-
-# plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
-
-# print(grid_centers)
-# gsize *= 10
-# fill_area = np.array([[(grid_centers[10] - gsize / 2),
-#                        (grid_centers[10] + gsize / 2),
-#                        (grid_centers[10] + gsize / 2),
-#                        (grid_centers[10] - gsize / 2)],
-#                       [(grid_centers[10] + gsize / 2),
-#                        (grid_centers[10] + gsize / 2),
-#                        (grid_centers[10] - gsize / 2),
-#                        (grid_centers[10] - gsize / 2)]])
-# plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
-
-# plt.show()
-
-# To do
-# save in_feature and out_feature as h5
-# The upper right is the first. Then go left.
-# So need to change the order of out_feature.
-# print(out_feature)
 print("out_featere.shape" + str(out_feature.shape))
 out_feature = np.flip(np.flip(out_feature, axis=1), axis=2)
+loss_weight = np.flip(np.flip(loss_weight, axis=1), axis=2)
 
-with h5py.File('nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('oneframe_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
     out_feature = np.transpose(
         out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
@@ -310,14 +228,3 @@ with h5py.File('nusc_baidu_confidence.h5', 'w') as f:
     print(in_feature.shape)
     f.create_dataset('data', dtype=np.float, data=in_feature)
 
-# debug now. this may be better
-# out_feature = np.transpose(
-#     out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-# in_feature = np.transpose(
-#     in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-# f = h5py.File("nusc_baidu_2.h5", "w")
-# f.create_dataset("data", in_feature.shape, dtype="f8")
-# f.create_dataset("label", out_feature.shape, dtype="f8")
-# f["data"][:] = in_feature.astype("f8")
-# f["label"][:] = out_feature.astype("f8")
-# f.close

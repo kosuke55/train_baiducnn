@@ -5,7 +5,7 @@ sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 
 # infh = h5py.File('nusc_baidu.h5', 'r')
-infh = h5py.File('nusc_baidu_confidence.h5', 'r')
+infh = h5py.File('oneframe_nusc_baidu_confidence.h5', 'r')
 infh.keys()
 in_feature = infh['data'].value
 print(in_feature.shape)
@@ -32,8 +32,12 @@ out_feature = np.transpose(
 out_image = out_feature.reshape(640, 640) * 255
 # print(np.count_nonzero(out_image))
 # print(out_image.shape)
+lw_image = loss_weight.reshape(640, 640)
+lw_image[np.where(lw_image == 1.)] = 0
+lw_image *= 255
+print(lw_image.shape)
 
-
+cv2.imwrite("loss_weight.png", lw_image)
 cv2.imwrite("confidence_out.png", out_image)
 # in_image = in_image[:, :, 7] * 255
 for i in range(8):

@@ -9,7 +9,7 @@ infh = h5py.File('nusc_baidu_confidence.h5', 'r')
 in_feature = infh['data'].value
 
 net = caffe.Net('data/pred_confidence.prototxt',
-                'logs/nusc_baidu_confidence_fuga_iter_2014.caffemodel',
+                'logs/nusc_baidu_confidence_fuga_iter_188.caffemodel',
                 caffe.TEST)
 
 in_feature = infh['data'].value
@@ -29,6 +29,6 @@ mean = np.mean(conf)
 print(mean)
 print(np.max(conf))
 print(np.min(conf))
-conf[np.where(conf > 0.8)] = 255
+conf[np.where(conf > 0.999999)] = 255
 
 cv2.imwrite("confidence_pred.png", conf)
