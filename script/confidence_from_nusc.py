@@ -67,7 +67,6 @@ def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
     mask_x = np.logical_and(0 <= iv, iv <= np.dot(i, i))
     mask_y = np.logical_and(0 <= jv, jv <= np.dot(j, j))
     mask = np.logical_and(mask_x, mask_y)
-
     return mask
 
 
@@ -86,18 +85,23 @@ loss_weight = np.full((1, size, size, 1), 0.5)
 print(out_feature.shape)
 
 channel = 5
-dataroot = '/home/kosuke/dataset/nuScenes/'
+# dataroot = '/home/kosuke/dataset/nuScenes/'
+dataroot = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
+
+# nusc_version = "v1.0-mini"
+nusc_version = "v1.0-trainval"
 nusc = NuScenes(
-    version='v1.0-mini',
+    version=nusc_version,
     dataroot=dataroot, verbose=True)
 
+data_id = 20
 my_scene = nusc.scene[0]
 token = my_scene['first_sample_token']
 
 ref_chan = 'LIDAR_TOP'
 
 my_sample = nusc.get('sample', token)
-my_sample = nusc.sample[20]
+my_sample = nusc.sample[data_id]
 
 sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
 sample_rec = nusc.get('sample', sd_record['sample_token'])
@@ -111,34 +115,12 @@ _, boxes, _ = nusc.get_sample_data(sd_record['token'], box_vis_level=0)
 points = view_points(pc.points[:3, :], np.eye(4), normalize=False)
 dists = np.sqrt(np.sum(pc.points[:2, :] ** 2, axis=0))
 
-axes_limit = grid_range
-colors = np.minimum(1, dists / axes_limit / np.sqrt(2))
-
-_, ax = plt.subplots(1, 1, figsize=(10, 10))
-ax.scatter(points[0, :], points[1, :], c=colors, s=0.2)
-ax.plot(0, 0, 'x', color='black')
-ax.grid(which="major", color="silver")
 ticks = np.arange(-grid_range, grid_range + gsize, gsize)
 
 grid_x, grid_y = np.meshgrid(ticks, ticks)
 grid_x = grid_x.flatten()
 grid_y = grid_y.flatten()
 
-plt.tick_params(labelbottom=False,
-                labelleft=False,
-                labelright=False,
-                labeltop=False)
-
-ax.set_xticks(ticks)
-ax.set_yticks(ticks)
-ax.set_xlim(-grid_range, grid_range)
-ax.set_ylim(-grid_range, grid_range)
-
-for box in boxes:
-    c = np.array(get_color(box.name)) / 255.0
-    box.render(ax, view=np.eye(4), colors=(c, c, c))
-
-box = boxes[2]
 for box_idx, box in enumerate(boxes):
     print("box_idx  {}/{}".format(box_idx, len(boxes)))
     view = np.eye(4)
@@ -179,25 +161,14 @@ for box_idx, box in enumerate(boxes):
 # This is input feature
 feature_generator = fg.Feature_generator()
 feature_generator.generate(pc.points.T)
-# print(pc.points.shape)
-# for i in range(10):
-#     print(pc.points.T[i])
 
 feature = feature_generator.feature
-# feature = feature_generator.feature[::-1]
 
-
-# feature = feature_generator.feature.T.reshape(
-#     1, 8, feature_generator.height, feature_generator.width)
 print(feature[feature != 0])
 for i in range(8):
     print("{}-----{}".format(i, np.count_nonzero(feature[:, i])))
 
-# check if input data is correct
-grid_centers = (ticks + gsize / 2)[:len(ticks) - 1]
-
 # pos_y, pos_x, 8
-
 feature = feature.reshape(size, size, 8)
 in_feature = feature[np.newaxis, :, :, :]
 print("in_feature.shape = " + str(in_feature.shape))
@@ -205,14 +176,11 @@ print("in_feature.shape = " + str(in_feature.shape))
 nonzero_idx = np.where(feature[:, :, 7] != 0)
 print(nonzero_idx)
 
-grid_center = np.array([grid_centers[size - 1 - nonzero_idx[0]],
-                        grid_centers[size - 1 - nonzero_idx[1]]])
-
 print("out_featere.shape" + str(out_feature.shape))
 out_feature = np.flip(np.flip(out_feature, axis=1), axis=2)
 loss_weight = np.flip(np.flip(loss_weight, axis=1), axis=2)
 
-with h5py.File('oneframe_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('test_oneframe_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
     out_feature = np.transpose(
         out_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
@@ -227,4 +195,3 @@ with h5py.File('oneframe_nusc_baidu_confidence.h5', 'w') as f:
         in_feature, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_feature.shape)
     f.create_dataset('data', dtype=np.float, data=in_feature)
-

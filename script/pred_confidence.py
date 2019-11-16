@@ -6,6 +6,7 @@ import cv2
 caffe.set_device(0)
 caffe.set_mode_gpu()
 infh = h5py.File('oneframe_nusc_baidu_confidence.h5', 'r')
+# infh = h5py.File('test_oneframe_nusc_baidu_confidence.h5', 'r')
 in_feature = infh['data'].value
 print(in_feature.shape)
 # model = 'logs/oneframe_nusc_baidu_confidence_iter_7001.caffemodel'
@@ -15,8 +16,7 @@ print(in_feature.shape)
 # model = 'logs/allconf/nusc_baidu_confidence_iter_1145.caffemodel'
 # model = 'logs/oneframe/nusc_baidu_confidence_iter_3534.caffemodel'
 # model = 'logs/oneframe/nusc_baidu_confidence_iter_2192.caffemodel'
-model = 'logs/allconf/nusc_baidu_confidence_4_iter_58000.caffemodel'
-
+model = 'logs/allconf/nusc_baidu_confidence_4_iter_100000.caffemodel'
 
 net = caffe.Net('data/pred_confidence.prototxt',
                 model,

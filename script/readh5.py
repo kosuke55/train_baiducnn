@@ -6,6 +6,7 @@ import cv2
 
 # infh = h5py.File('nusc_baidu.h5', 'r')
 infh = h5py.File('oneframe_nusc_baidu_confidence.h5', 'r')
+# infh = h5py.File('test_oneframe_nusc_baidu_confidence.h5', 'r')
 # infh = h5py.File('nusc_baidu_confidence.h5', 'r')
 infh.keys()
 in_feature = infh['data'].value
@@ -62,5 +63,5 @@ for i in range(8):
 # cv2.imshow('window', out_image)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
-cv2.imwrite("confidence_out_.png", out_image)
+cv2.imwrite("confidence_out.png", out_image)
 infh.close()
