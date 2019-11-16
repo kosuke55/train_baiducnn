@@ -82,7 +82,7 @@ gsize = 2 * grid_range / size
 # center -> x, y
 # out_feature = np.zeros((1, size, size, 6))
 out_feature = np.zeros((1, size, size, 1))
-loss_weight = np.full((1, size, size, 1), 0.)
+loss_weight = np.full((1, size, size, 1), 0.5)
 print(out_feature.shape)
 
 channel = 5

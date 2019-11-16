@@ -1,7 +1,5 @@
 import numpy as np
 import baidu_cnn_util as bcu
-import time
-import h5py
 
 
 class Feature_generator():
@@ -51,12 +49,10 @@ class Feature_generator():
         return np.fromfile(pc_f, dtype=np.float32, count=-1).reshape([-1, 4])
 
     def generate(self, points):
-        # points = self.load_pc_from_file(pc_f)
         print("points.shape = " + str(points.shape))
         self.map_idx = np.zeros(len(points))
         inv_res_x = 0.5 * self.width / self.range
         inv_res_y = 0.5 * self.height / self.range
-        start = time.time()
         for i in range(len(points)):
             if(points[i, 2] <= self.min_height or
                points[i, 2] >= self.max_height):
@@ -83,8 +79,6 @@ class Feature_generator():
             self.feature[idx, self.mean_height_data] += pz
             self.feature[idx, self.mean_intensity_data] += pi
             self.feature[idx, self.count_data] += 1.0
-        end = time.time()
-        print(end - start)
 
         for i in range(self.siz):
             eps = 1e-6

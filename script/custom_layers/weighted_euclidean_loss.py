@@ -12,7 +12,7 @@ class WeightedEuclideanLossLayer(caffe.Layer):
     def reshape(self, bottom, top):
         # check input dimensions match
         if bottom[0].count != bottom[1].count:
-            raise Exception("Inputs must have the same dimension.")
+            raise Exception("Inputs must have the same dimenpresion.")
         # difference is shape of inputs
         self.diff = np.zeros_like(bottom[0].data, dtype=np.float32)
         # loss output is scalar

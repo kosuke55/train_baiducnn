@@ -773,7 +773,7 @@ layer{
   propagate_down: 0
   loss_weight: 1
   python_param {
-    module: "weighted_euclidean_loss"
+    module: "weighted_euclidean_loss_ver2"
     layer: "WeightedEuclideanLossLayer"
   }
 }
