@@ -15,7 +15,7 @@ print(in_feature.shape)
 # model = 'logs/allconf/nusc_baidu_confidence_iter_1145.caffemodel'
 # model = 'logs/oneframe/nusc_baidu_confidence_iter_3534.caffemodel'
 # model = 'logs/oneframe/nusc_baidu_confidence_iter_2192.caffemodel'
-model = 'logs/allconf/nusc_baidu_confidence_4_iter_27000.caffemodel'
+model = 'logs/allconf/nusc_baidu_confidence_4_iter_32000.caffemodel'
 
 
 net = caffe.Net('data/pred_confidence.prototxt',
@@ -39,6 +39,6 @@ mean = np.mean(conf)
 print(mean)
 print(np.max(conf))
 print(np.min(conf))
-conf[np.where(conf > 0.5)] = 255
+conf[np.where(conf > 0.6)] = 255
 
 cv2.imwrite("confidence_pred.png", conf)
