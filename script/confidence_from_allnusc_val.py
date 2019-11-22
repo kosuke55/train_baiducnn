@@ -80,14 +80,21 @@ cols = 640
 gsize = 2 * grid_range / size
 
 # center -> x, y
-in_features = np.empty((0, size, size, 8), dtype=np.float32)
-# out_feature = np.zeros((1, size, size, 6))
-out_features = np.empty((0, size, size, 1), dtype=np.float32)
-loss_weights = np.empty((0, size, size, 1), dtype=np.float16)
+# in_features = np.empty((0, size, size, 8), dtype=np.float32)
+# out_features = np.empty((0, size, size, 1), dtype=np.float32)
+# loss_weights = np.empty((0, size, size, 1), dtype=np.float16)
 
-in_features_val = np.empty((0, size, size, 8), dtype=np.float32)
-out_features_val = np.empty((0, size, size, 1), dtype=np.float32)
-loss_weights_val = np.empty((0, size, size, 1), dtype=np.float16)
+# in_features_val = np.empty((0, size, size, 8), dtype=np.float32)
+# out_features_val = np.empty((0, size, size, 1), dtype=np.float32)
+# loss_weights_val = np.empty((0, size, size, 1), dtype=np.float16)
+
+in_features = []
+out_features = []
+loss_weights = []
+
+in_features_val = []
+out_features_val = []
+loss_weights_val = []
 
 channel = 5
 # dataroot = '/home/kosuke/dataset/nuScenes/'
@@ -107,8 +114,10 @@ for my_scene in nusc.scene:
 
     while(token != ''):
         print("--- {} ".format(data_id) + token + " ---")
-        out_feature = np.zeros((1, size, size, 1), dtype=np.float32)
-        loss_weight = np.full((1, size, size, 1), 0.5, dtype=np.float16)
+        # out_feature = np.zeros((1, size, size, 1), dtype=np.float32)
+        # loss_weight = np.full((1, size, size, 1), 0.5, dtype=np.float16)
+        out_feature = np.zeros((size, size, 1), dtype=np.float32)
+        loss_weight = np.full((size, size, 1), 0.5, dtype=np.float16)
         my_sample = nusc.get('sample', token)
         sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
         sample_rec = nusc.get('sample', sd_record['sample_token'])
@@ -162,8 +171,10 @@ for my_scene in nusc.scene:
                     # grid_center is in meter coords
                     grid_center = np.array([grid_centers[i], grid_centers[j]])
                     if(points_in_box2d(box2d, grid_center)):
-                        out_feature[0, i, j, 0] = 1.
-                        loss_weight[0, i, j, 0] = 1.
+                        # out_feature[0, i, j, 0] = 1.
+                        # loss_weight[0, i, j, 0] = 1.
+                        out_feature[i, j, 0] = 1.
+                        loss_weight[i, j, 0] = 1.
 
         # This is input feature
         feature_generator = fg.Feature_generator()
@@ -178,7 +189,7 @@ for my_scene in nusc.scene:
         # pos_y, pos_x, 8
 
         in_feature = in_feature.reshape(size, size, 8)
-        in_feature = in_feature[np.newaxis, :, :, :]
+        # in_feature = in_feature[np.newaxis, :, :, :]
         # in_feature = in_feature.astype(np.float32)
         out_feature = np.flip(np.flip(out_feature, axis=1), axis=2)
         # out_feature = out_feature.astype(np.float32)
@@ -186,55 +197,79 @@ for my_scene in nusc.scene:
         # loss_weight = loss_weight.astype(np.float16)
 
         if(data_id % 10):
-            in_features = np.append(in_features, in_feature, axis=0)
-            out_features = np.append(out_features, out_feature, axis=0)
-            loss_weights = np.append(loss_weights, loss_weight, axis=0)
+            # in_features = np.append(in_features, in_feature, axis=0)
+            # out_features = np.append(out_features, out_feature, axis=0)
+            # loss_weights = np.append(loss_weights, loss_weight, axis=0)
+
+            in_features.append(in_feature)
+            out_features.append(out_feature)
+            loss_weights.append(loss_weight)
+
             # print("out_feateres.shape" + str(out_features.shape))
             # print("in_feateres.shape" + str(in_features.shape))
             # print("loss_weights.shape" + str(loss_weights.shape))
-            print("out_feateres.dtype" + str(out_features.dtype))
-            print("in_feateres.dtype" + str(in_features.dtype))
-            print("loss_weights.dtype" + str(loss_weights.dtype))
+            # print("out_feateres.dtype" + str(out_features.dtype))
+            # print("in_feateres.dtype" + str(in_features.dtype))
+            # print("loss_weights.dtype" + str(loss_weights.dtype))
         else:
-            in_features_val = np.append(in_features_val, in_feature, axis=0)
-            out_features_val = np.append(out_features_val, out_feature, axis=0)
-            loss_weights_val = np.append(loss_weights_val, loss_weight, axis=0)
+            # in_features_val = np.append(in_features_val, in_feature, axis=0)
+            # out_features_val = np.append(out_features_val, out_feature, axis=0)
+            # loss_weights_val = np.append(loss_weights_val, loss_weight, axis=0)
+
+            in_features_val.append(in_feature)
+            out_features_val.append(out_feature)
+            loss_weights_val.append(loss_weight)
             print("create val data")
 
         token = my_sample['next']
         data_id += 1
 
 
-with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
-    # transform data into caffe format
-    out_features = np.transpose(
-        out_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(out_features.shape)
-    f.create_dataset('output', dtype=np.float, data=out_features)
 
-    loss_weights = np.transpose(
-        loss_weights, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(loss_weights.shape)
-    f.create_dataset('loss_weight', dtype=np.float, data=loss_weights)
 
-    in_features = np.transpose(
-        in_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(in_features.shape)
-    f.create_dataset('data', dtype=np.float, data=in_features)
 
 with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
     # transform data into caffe format
+    out_features_val = np.array(out_features_val)
     out_features_val = np.transpose(
         out_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_features.shape)
-    f.create_dataset('output', dtype=np.float, data=out_features_val)
+    f.create_dataset('output', dtype=np.float32, data=out_features_val)
+    out_features_val = None
 
+    loss_weights_val = np.array(loss_weights_val)
     loss_weights_val = np.transpose(
         loss_weights_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(loss_weights.shape)
-    f.create_dataset('loss_weight', dtype=np.float, data=loss_weights_val)
+    f.create_dataset('loss_weight', dtype=np.float16, data=loss_weights_val)
+    loss_weights_val = None
 
+    in_features_val = np.array(in_features_val)
     in_features_val = np.transpose(
         in_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_features.shape)
-    f.create_dataset('data', dtype=np.float, data=in_features_val)
+    f.create_dataset('data', dtype=np.float32, data=in_features_val)
+    in_features_val = None
+
+with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
+    # transform data into caffe format
+    out_features = np.array(out_features)
+    out_features = np.transpose(
+        out_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+    print(out_features.shape)
+    f.create_dataset('output', dtype=np.float32, data=out_features)
+    out_features = None
+
+    loss_weights = np.array(loss_weights)
+    loss_weights = np.transpose(
+        loss_weights, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+    print(loss_weights.shape)
+    f.create_dataset('loss_weight', dtype=np.float16, data=loss_weights)
+    loss_weight = None
+
+    in_features = np.array(in_features)
+    in_features = np.transpose(
+        in_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
+    print(in_features.shape)
+    f.create_dataset('data', dtype=np.float32, data=in_features)
+    in_features = None
