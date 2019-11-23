@@ -24,7 +24,7 @@ class Feature_generator():
         self.distance_data = 6
         self.nonempty_data = 7
         # this is mistake. chanel is first.
-        self.feature = np.zeros((self.siz, 8), dtype=np.float32)
+        self.feature = np.zeros((self.siz, 8), dtype=np.float16)
 
         for row in range(self.height):
             for col in range(self.width):

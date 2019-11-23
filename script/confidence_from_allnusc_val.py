@@ -116,7 +116,7 @@ for my_scene in nusc.scene:
         print("--- {} ".format(data_id) + token + " ---")
         # out_feature = np.zeros((1, size, size, 1), dtype=np.float32)
         # loss_weight = np.full((1, size, size, 1), 0.5, dtype=np.float16)
-        out_feature = np.zeros((size, size, 1), dtype=np.float32)
+        out_feature = np.zeros((size, size, 1), dtype=np.float16)
         loss_weight = np.full((size, size, 1), 0.5, dtype=np.float16)
         my_sample = nusc.get('sample', token)
         sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
@@ -223,41 +223,41 @@ for my_scene in nusc.scene:
 
         token = my_sample['next']
         data_id += 1
+        if(data_id == 100):
+            break
+    if(data_id == 100):
+        break
 
-
-
-
-
-with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
+with h5py.File('100_nusc_baidu_confidence_val.h5', 'w') as f:
     # transform data into caffe format
     out_features_val = np.array(out_features_val)
     out_features_val = np.transpose(
         out_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(out_features.shape)
-    f.create_dataset('output', dtype=np.float32, data=out_features_val)
+    print(out_features_val.shape)
+    f.create_dataset('output', dtype=np.float16, data=out_features_val)
     out_features_val = None
 
     loss_weights_val = np.array(loss_weights_val)
     loss_weights_val = np.transpose(
         loss_weights_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(loss_weights.shape)
+    print(loss_weights_val.shape)
     f.create_dataset('loss_weight', dtype=np.float16, data=loss_weights_val)
     loss_weights_val = None
 
     in_features_val = np.array(in_features_val)
     in_features_val = np.transpose(
         in_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
-    print(in_features.shape)
-    f.create_dataset('data', dtype=np.float32, data=in_features_val)
+    print(in_features_val.shape)
+    f.create_dataset('data', dtype=np.float16, data=in_features_val)
     in_features_val = None
 
-with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('100_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
     out_features = np.array(out_features)
     out_features = np.transpose(
         out_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_features.shape)
-    f.create_dataset('output', dtype=np.float32, data=out_features)
+    f.create_dataset('output', dtype=np.float16, data=out_features)
     out_features = None
 
     loss_weights = np.array(loss_weights)
@@ -271,5 +271,5 @@ with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
     in_features = np.transpose(
         in_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_features.shape)
-    f.create_dataset('data', dtype=np.float32, data=in_features)
+    f.create_dataset('data', dtype=np.float16, data=in_features)
     in_features = None
