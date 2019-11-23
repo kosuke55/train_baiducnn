@@ -38,20 +38,6 @@ def view_points(points: np.ndarray,
     return points
 
 
-def get_color(category_name: str) -> Tuple[int, int, int]:
-    """ Provides the default colors based on the category names. """
-    if category_name in ['vehicle.bicycle', 'vehicle.motorcycle']:
-        return 255, 61, 99  # Red
-    elif 'vehicle' in category_name:
-        return 255, 158, 0  # Orange
-    elif 'human.pedestrian' in category_name:
-        return 0, 0, 230  # Blue
-    elif 'cone' in category_name or 'barrier' in category_name:
-        return 0, 0, 0  # Black
-    else:
-        return 255, 0, 255  # Magenta
-
-
 def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
     p1 = box2d[0]
     p_x = box2d[1]
@@ -78,15 +64,6 @@ rows = 640
 cols = 640
 
 gsize = 2 * grid_range / size
-
-# center -> x, y
-# in_features = np.empty((0, size, size, 8), dtype=np.float32)
-# out_features = np.empty((0, size, size, 1), dtype=np.float32)
-# loss_weights = np.empty((0, size, size, 1), dtype=np.float16)
-
-# in_features_val = np.empty((0, size, size, 8), dtype=np.float32)
-# out_features_val = np.empty((0, size, size, 1), dtype=np.float32)
-# loss_weights_val = np.empty((0, size, size, 1), dtype=np.float16)
 
 in_features = []
 out_features = []
@@ -134,7 +111,7 @@ for my_scene in nusc.scene:
         ticks = np.arange(-grid_range, grid_range + gsize, gsize)
 
         for box_idx, box in enumerate(boxes):
-            # print("box_idx  {}/{}".format(box_idx, len(boxes)))
+            # print("box_idx  {}/{}".format(box_idx, len(boxes))n)
             view = np.eye(4)
 
             corners3d = view_points(box.corners(), view, normalize=False)
@@ -180,42 +157,20 @@ for my_scene in nusc.scene:
         feature_generator = fg.Feature_generator()
         feature_generator.generate(pc.points.T)
         in_feature = feature_generator.feature
-        # for i in range(8):
-        #     print("{}-----{}".format(i, np.count_nonzero(in_feature[:, i])))
 
         # check if input data is correct
         grid_centers = (ticks + gsize / 2)[:len(ticks) - 1]
 
         # pos_y, pos_x, 8
-
         in_feature = in_feature.reshape(size, size, 8)
-        # in_feature = in_feature[np.newaxis, :, :, :]
-        # in_feature = in_feature.astype(np.float32)
-        out_feature = np.flip(np.flip(out_feature, axis=1), axis=2)
-        # out_feature = out_feature.astype(np.float32)
-        loss_weight = np.flip(np.flip(loss_weight, axis=1), axis=2)
-        # loss_weight = loss_weight.astype(np.float16)
+        out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
+        loss_weight = np.flip(np.flip(loss_weight, axis=0), axis=1)
 
         if(data_id % 10):
-            # in_features = np.append(in_features, in_feature, axis=0)
-            # out_features = np.append(out_features, out_feature, axis=0)
-            # loss_weights = np.append(loss_weights, loss_weight, axis=0)
-
             in_features.append(in_feature)
             out_features.append(out_feature)
             loss_weights.append(loss_weight)
-
-            # print("out_feateres.shape" + str(out_features.shape))
-            # print("in_feateres.shape" + str(in_features.shape))
-            # print("loss_weights.shape" + str(loss_weights.shape))
-            # print("out_feateres.dtype" + str(out_features.dtype))
-            # print("in_feateres.dtype" + str(in_features.dtype))
-            # print("loss_weights.dtype" + str(loss_weights.dtype))
         else:
-            # in_features_val = np.append(in_features_val, in_feature, axis=0)
-            # out_features_val = np.append(out_features_val, out_feature, axis=0)
-            # loss_weights_val = np.append(loss_weights_val, loss_weight, axis=0)
-
             in_features_val.append(in_feature)
             out_features_val.append(out_feature)
             loss_weights_val.append(loss_weight)
@@ -223,12 +178,12 @@ for my_scene in nusc.scene:
 
         token = my_sample['next']
         data_id += 1
-        if(data_id == 100):
+        if(data_id == 2):
             break
-    if(data_id == 100):
+    if(data_id == 2):
         break
 
-with h5py.File('100_nusc_baidu_confidence_val.h5', 'w') as f:
+with h5py.File('2_nusc_baidu_confidence_val.h5', 'w') as f:
     # transform data into caffe format
     out_features_val = np.array(out_features_val)
     out_features_val = np.transpose(
@@ -251,7 +206,7 @@ with h5py.File('100_nusc_baidu_confidence_val.h5', 'w') as f:
     f.create_dataset('data', dtype=np.float16, data=in_features_val)
     in_features_val = None
 
-with h5py.File('100_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('2_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
     out_features = np.array(out_features)
     out_features = np.transpose(
