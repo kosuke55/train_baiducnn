@@ -7,8 +7,25 @@ layer {
   top: "loss_weight"
   hdf5_data_param {
     source: "data/nusc_baidu_confidence.txt"
-    # source: "nusc_baidu_confidence.txt"
     batch_size: 1
+  }
+  include {
+    phase: TRAIN
+  }
+}
+
+layer {
+  name: "nusc_val"
+  type: "HDF5Data"
+  top: "data"
+  top: "output"
+  top: "loss_weight"
+  hdf5_data_param {
+    source: "data/nusc_baidu_confidence_val.txt"
+    batch_size: 1
+  }
+  include {
+    phase: TEST
   }
 }
 

@@ -20,10 +20,8 @@ class WeightedEuclideanLossLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         self.diff[...] = (bottom[0].data - bottom[1].data)
-        print(self.diff.shape)
         self.diff[np.where(self.diff > 0)] /= 4.
         self.diff *= bottom[2].data
-        print(self.diff.shape)
         top[0].data[...] \
             = np.sum(self.diff**2) / bottom[0].num / 2.
 
