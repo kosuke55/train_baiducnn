@@ -5,7 +5,7 @@ sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 
 infh = h5py.File('hoge_all_nusc_baidu_confidence.h5', 'r')
-infh = h5py.File('2_nusc_baidu_confidence_val.h5', 'r')
+infh = h5py.File('100_nusc_baidu_confidence_val.h5', 'r')
 infh.keys()
 
 frame_id = 0

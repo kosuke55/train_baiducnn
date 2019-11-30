@@ -4,6 +4,7 @@
 """
 under development.
 python 3.7.3
+
 """
 
 import numpy as np
@@ -74,10 +75,10 @@ out_features_val = []
 loss_weights_val = []
 
 channel = 5
-# dataroot = '/home/kosuke/dataset/nuScenes/'
-dataroot = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
-# nusc_version = "v1.0-mini"
-nusc_version = "v1.0-trainval"
+dataroot = '/home/kosuke/dataset/nuScenes/'
+# dataroot = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
+nusc_version = "v1.0-mini"
+# nusc_version = "v1.0-trainval"
 
 nusc = NuScenes(
     version=nusc_version,
@@ -94,7 +95,7 @@ for my_scene in nusc.scene:
         print("--- {} ".format(data_id) + token + " ---")
         # out_feature = np.zeros((1, size, size, 1), dtype=np.float32)
         # loss_weight = np.full((1, size, size, 1), 0.5, dtype=np.float16)
-        out_feature = np.zeros((size, size, 1), dtype=np.float16)
+        out_feature = np.zeros((size, size, 2), dtype=np.float16)
         loss_weight = np.full((size, size, 1), 0.5, dtype=np.float16)
         my_sample = nusc.get('sample', token)
         sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
@@ -112,6 +113,26 @@ for my_scene in nusc.scene:
         ticks = np.arange(-grid_range, grid_range + gsize, gsize)
 
         for box_idx, box in enumerate(boxes):
+            label = 0
+            # print(box.name.split(".")[0])
+            if(box.name.split(".")[0] == "vehicle"):
+                if(box.name.split(".")[1] == "car"):
+                    # print("car")
+                    label = 1
+                elif(box.name.split(".")[1] == "bus"):
+                    # print("bus")
+                    label = 2
+                elif(box.name.split(".")[1] == "truck"):
+                    # print("truck")
+                    label = 2
+                elif(box.name.split(".")[1] == "bicycle"):
+                    # print("bicycle")
+                    label = 3
+            elif(box.name.split(".")[0] == "human"):
+                label = 4
+            else:
+                # ignore object
+                continue
             # print("box_idx  {}/{}".format(box_idx, len(boxes))n)
             view = np.eye(4)
 
@@ -152,6 +173,7 @@ for my_scene in nusc.scene:
                         # out_feature[0, i, j, 0] = 1.
                         # loss_weight[0, i, j, 0] = 1.
                         out_feature[i, j, 0] = 1.
+                        out_feature[i, j, 1] = label
                         loss_weight[i, j, 0] = 1.
 
         # This is input feature
@@ -184,7 +206,7 @@ for my_scene in nusc.scene:
     if(data_id == end_id):
         break
 
-with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
+with h5py.File('conf_class_mini_val.h5', 'w') as f:
     # transform data into caffe format
     out_features_val = np.array(out_features_val)
     out_features_val = np.transpose(
@@ -207,7 +229,7 @@ with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
     f.create_dataset('data', dtype=np.float16, data=in_features_val)
     in_features_val = None
 
-with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('conf_class_mini.h5', 'w') as f:
     # transform data into caffe format
     out_features = np.array(out_features)
     out_features = np.transpose(
