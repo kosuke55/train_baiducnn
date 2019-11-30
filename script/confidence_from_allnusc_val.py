@@ -84,7 +84,7 @@ nusc = NuScenes(
     dataroot=dataroot, verbose=True)
 ref_chan = 'LIDAR_TOP'
 data_id = 0
-end_id = None
+end_id = 4000
 
 for my_scene in nusc.scene:
     first_sample_token = my_scene['first_sample_token']
@@ -184,7 +184,7 @@ for my_scene in nusc.scene:
     if(data_id == end_id):
         break
 
-with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
+with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/4000_nusc_baidu_confidence_val.h5', 'w') as f:
     # transform data into caffe format
     out_features_val = np.array(out_features_val)
     out_features_val = np.transpose(
@@ -207,7 +207,7 @@ with h5py.File('all_nusc_baidu_confidence_val.h5', 'w') as f:
     f.create_dataset('data', dtype=np.float16, data=in_features_val)
     in_features_val = None
 
-with h5py.File('all_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/4000_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
     out_features = np.array(out_features)
     out_features = np.transpose(
