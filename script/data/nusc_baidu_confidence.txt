@@ -1,1 +1,1 @@
-100_nusc_baidu_confidence.h5
+/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/1000_nusc_baidu_confidence_val.h5

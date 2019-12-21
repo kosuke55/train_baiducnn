@@ -1,2 +1,11 @@
-./images/3d_obstacle_perception
-./data
+*#*
+*pyc*
+ignore
+images/3d_obstacle_perception
+data
+script/ignore
+script/logs
+script/DIGITS
+script/trash
+script/traindata
+

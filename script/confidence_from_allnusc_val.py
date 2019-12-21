@@ -84,7 +84,7 @@ nusc = NuScenes(
     dataroot=dataroot, verbose=True)
 ref_chan = 'LIDAR_TOP'
 data_id = 0
-end_id = 4000
+end_id = 1000
 
 for my_scene in nusc.scene:
     first_sample_token = my_scene['first_sample_token']
@@ -184,46 +184,46 @@ for my_scene in nusc.scene:
     if(data_id == end_id):
         break
 
-with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/4000_nusc_baidu_confidence_val.h5', 'w') as f:
+with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/1000_nusc_baidu_confidence_val.h5', 'w') as f:
     # transform data into caffe format
-    out_features_val = np.array(out_features_val)
+    out_features_val = np.array(out_features_val, np.float16)
     out_features_val = np.transpose(
         out_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_features_val.shape)
     f.create_dataset('output', dtype=np.float16, data=out_features_val)
     out_features_val = None
 
-    loss_weights_val = np.array(loss_weights_val)
+    loss_weights_val = np.array(loss_weights_val, np.float16)
     loss_weights_val = np.transpose(
         loss_weights_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(loss_weights_val.shape)
     f.create_dataset('loss_weight', dtype=np.float16, data=loss_weights_val)
     loss_weights_val = None
 
-    in_features_val = np.array(in_features_val)
+    in_features_val = np.array(in_features_val, np.float16)
     in_features_val = np.transpose(
         in_features_val, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_features_val.shape)
     f.create_dataset('data', dtype=np.float16, data=in_features_val)
     in_features_val = None
 
-with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/4000_nusc_baidu_confidence.h5', 'w') as f:
+with h5py.File('/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/h5/1000_nusc_baidu_confidence.h5', 'w') as f:
     # transform data into caffe format
-    out_features = np.array(out_features)
+    out_features = np.array(out_features, np.float16)
     out_features = np.transpose(
         out_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(out_features.shape)
     f.create_dataset('output', dtype=np.float16, data=out_features)
     out_features = None
 
-    loss_weights = np.array(loss_weights)
+    loss_weights = np.array(loss_weights, np.float16)
     loss_weights = np.transpose(
         loss_weights, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(loss_weights.shape)
     f.create_dataset('loss_weight', dtype=np.float16, data=loss_weights)
     loss_weight = None
 
-    in_features = np.array(in_features)
+    in_features = np.array(in_features, np.float16)
     in_features = np.transpose(
         in_features, (0, 3, 2, 1))  # NxWxHxC -> NxCxHxW
     print(in_features.shape)
