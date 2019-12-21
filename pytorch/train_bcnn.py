@@ -147,7 +147,7 @@ def train(epo_num, pretrained_model):
 
 
 if __name__ == "__main__":
-    # pretrained_model = "/home/kosuke/develop/pytorch-FCN-easiest-demo/checkpoints/bcnn_bestmodel_mini_844.pt"
-    pretrained_model = "/home/kosuke/develop/pytorch-FCN-easiest-demo/checkpoints/bcnn_bestmodel.pt"
+    # pretrained_model = "checkpoints/bcnn_bestmodel_mini_844.pt"
+    pretrained_model = "checkpoints/bcnn_bestmodel_dict.pt"
     train(epo_num=100000, pretrained_model=pretrained_model)
 
