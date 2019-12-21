@@ -1,6 +1,7 @@
 *#*
 *pyc*
 *.python-version*
+*.markdown-preview.html*
 ignore
 images/3d_obstacle_perception
 data
