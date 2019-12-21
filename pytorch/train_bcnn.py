@@ -16,12 +16,12 @@ def train(epo_num, pretrained_model):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bcnn_model = BCNN().to(device)
     bcnn_model.load_state_dict(torch.load(pretrained_model))
-    # bcnn_model = torch.load(pretrained_model).to(device)
     bcnn_model.eval()
 
-    # criterion = nn.BCELoss().to(device)
-    # optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-3, momentum=0.7)
-    optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-4)
+    # optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-5, momentum=0.9,
+    #                       weight_decay=5e-4)
+    optimizer = torch.optim.Adam(bcnn_model.parameters(), lr=1e-4)
+    # optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6)
 
     all_train_iter_loss = []
     all_test_iter_loss = []
@@ -50,7 +50,8 @@ def train(epo_num, pretrained_model):
             optimizer.zero_grad()
             # output = model(nusc)
             output = bcnn_model(nusc)  # output is confidence
-            output = output[2]
+            # output = output[2]
+            output = output[:, 3, :, :]
             output = torch.sigmoid(output)
 
             loss = criterion(output, nusc_msk, pos_weight)
@@ -63,14 +64,13 @@ def train(epo_num, pretrained_model):
             output_np = output.cpu().detach().numpy().copy()
             output_np = output_np.transpose(1, 2, 0)
             output_img = np.zeros((640, 640, 1), dtype=np.uint8)
-            # conf_idx = np.where(output_np[..., 0] > output_np[..., 0].mean())
-            conf_idx = np.where(output_np[..., 0] > 0.5)
+            conf_idx = np.where(output_np[..., 0] > output_np[..., 0].mean())
+            # conf_idx = np.where(output_np[..., 0] > 0.5)
             output_img[conf_idx] = 255
             output_img = output_img.transpose(2, 0, 1)
             nusc_msk_img = nusc_msk.cpu().detach().numpy().copy()
             # print(nusc.shape)
             nusc_img = nusc[:, 7, ...].cpu().detach().numpy().copy()
-
             if np.mod(index, 15) == 0:
                 print('epoch {}, {}/{},train loss is {}'.format(epo,
                                                                 index,
@@ -99,7 +99,8 @@ def train(epo_num, pretrained_model):
                 nusc_msk = nusc_msk.to(device)
 
                 optimizer.zero_grad()
-                output = bcnn_model(nusc)[2]
+                output = bcnn_model(nusc)  # output is confidence
+                output = output[:, 3, :, :]
                 output = torch.sigmoid(output)
                 # loss = criterion(pos_weight, output, nusc_msk)
                 loss = criterion(output, nusc_msk, pos_weight)
@@ -110,8 +111,8 @@ def train(epo_num, pretrained_model):
                 output_np = output.cpu().detach().numpy().copy()
                 output_np = output_np.transpose(1, 2, 0)
                 output_img = np.zeros((640, 640, 1), dtype=np.uint8)
-                # conf_idx = np.where(output_np[..., 0] > output_np[..., 0].mean())
-                conf_idx = np.where(output_np[..., 0] > 0.5)
+                conf_idx = np.where(output_np[..., 0] > output_np[..., 0].mean())
+                # conf_idx = np.where(output_np[..., 0] > 0.5)
                 output_img[conf_idx] = 255
                 output_img = output_img.transpose(2, 0, 1)
 
@@ -147,7 +148,6 @@ def train(epo_num, pretrained_model):
 
 
 if __name__ == "__main__":
-    # pretrained_model = "checkpoints/bcnn_bestmodel_mini_844.pt"
-    pretrained_model = "checkpoints/bcnn_bestmodel_dict.pt"
+    pretrained_model = "checkpoints/bcnn_bestmodel_mini.pt"
     train(epo_num=100000, pretrained_model=pretrained_model)
 

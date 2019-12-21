@@ -42,8 +42,8 @@ class BCNN(nn.Module):
 
         self.conv5_1 = nn.Conv2d(
             128, 192, kernel_size=3, stride=2, padding=1)
-        self.conv5_2 = nn.Conv2d(
-            192, 192, kernel_size=3, stride=1, padding=1)
+        # self.conv5_2 = nn.Conv2d(
+        #     192, 192, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(
             192, 192, kernel_size=3, stride=1, padding=1)
 
@@ -95,8 +95,10 @@ class BCNN(nn.Module):
                 self.relu(self.conv4_1(conv3))))))
 
         conv5 = self.relu(self.conv5(
-            self.relu(self.conv5_2(
-                self.relu(self.conv5_1(conv4))))))
+            self.relu(self.conv5_1(conv4))))
+        # conv5 = self.relu(self.conv5(
+        #     self.relu(self.conv5_2(
+        #         self.relu(self.conv5_1(conv4))))))
 
         # deconv
         deconv5_1 = self.relu(self.deconv5_1(conv5))
@@ -119,11 +121,12 @@ class BCNN(nn.Module):
 
         deconv0 = self.deconv0(deconv1_1)
 
-        category = deconv0[:, 0, :, :]
-        instance = deconv0[:, 1:3, :, :]
-        confidence = deconv0[:, 3, :, :]
-        classify = deconv0[:, 4:10, :, :]
-        heading = deconv0[:, 10, :, :]
-        height = deconv0[:, 11, :, :]
+        # category = deconv0[:, 0, :, :]
+        # instance = deconv0[:, 1:3, :, :]
+        # confidence = deconv0[:, 3, :, :]
+        # classify = deconv0[:, 4:10, :, :]
+        # heading = deconv0[:, 10, :, :]
+        # height = deconv0[:, 11, :, :]
 
-        return category, instance, confidence, classify, heading, height
+        return deconv0
+        # return category, instance, confidence, classify, heading, height

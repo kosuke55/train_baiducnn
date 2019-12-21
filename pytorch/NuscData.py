@@ -17,6 +17,9 @@ transform = transforms.Compose([
 DATA_PATH \
     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/all/"
 
+# DATA_PATH \
+#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/mini/"
+
 
 class NuscDataset(Dataset):
 
