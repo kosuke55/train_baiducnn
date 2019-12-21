@@ -42,8 +42,6 @@ class BCNN(nn.Module):
 
         self.conv5_1 = nn.Conv2d(
             128, 192, kernel_size=3, stride=2, padding=1)
-        # self.conv5_2 = nn.Conv2d(
-        #     192, 192, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(
             192, 192, kernel_size=3, stride=1, padding=1)
 
