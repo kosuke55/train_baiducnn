@@ -1,12 +1,13 @@
 import os
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 import sys
 OPENCV_PATH \
-    = '/home/kosuke/.pyenv/versions/anaconda3-2019.03/lib/python3.7/site-packages'
+    = "/home/kosuke/.pyenv/versions/anaconda3-2019.03"\
+    + "/lib/python3.7/site-packages"
+
 sys.path = [OPENCV_PATH] + sys.path
 print(sys.path)
 
@@ -15,10 +16,12 @@ transform = transforms.Compose([
 
 
 DATA_PATH \
-    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/all/"
+    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e" \
+    + "/baidu_train_data/all/"
 
 # DATA_PATH \
-#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/mini/"
+#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e" \
+#     + "/baidu_train_data/mini/"
 
 
 class NuscDataset(Dataset):
@@ -33,26 +36,13 @@ class NuscDataset(Dataset):
         data_name = os.listdir(DATA_PATH + 'in_feature')[idx]
 
         in_feature = np.load(DATA_PATH + "in_feature/" + data_name)
-        # print(in_feature[..., c][in_feature[..., c] > 0])
         in_feature = in_feature.astype(np.float32)
 
         out_feature = np.load(DATA_PATH + "out_feature/" + data_name)
-        # print(out_feature.shape)
         out_feature = out_feature[..., 0]   # use only confidence
-        # out_feature = out_feature.transpose(2, 0, 1)
         out_feature = torch.FloatTensor(out_feature)
-        # print(out_feature[out_feature>0])
-        # print(out_feature.shape)
-        # import pdb
-        # pdb.set_trace()
-
-        # c = 1
-        # print(in_feature[..., c][in_feature[..., c] > 0])
-        # print(in_feature.shape)
         if self.transform:
             in_feature = self.transform(in_feature)
-            # print(in_feature.shape)
-            # print(in_feature[c][in_feature[c] > 0])
 
         return in_feature, out_feature
 
