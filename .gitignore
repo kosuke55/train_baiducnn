@@ -3,6 +3,7 @@
 ignore
 images/3d_obstacle_perception
 data
+pytorch/checkpoints
 script/ignore
 script/logs
 script/DIGITS
