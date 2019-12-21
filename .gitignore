@@ -1,5 +1,6 @@
 *#*
 *pyc*
+*.python-version*
 ignore
 images/3d_obstacle_perception
 data
