@@ -11,17 +11,25 @@ OPENCV_PATH \
 sys.path = [OPENCV_PATH] + sys.path
 print(sys.path)
 
+
+def onehot(data, n):
+    buf = np.zeros(data.shape + (n, ))
+    nmsk = np.arange(data.size) * n + data.ravel()
+    buf.ravel()[nmsk] = 1
+    return buf
+
+
 transform = transforms.Compose([
     transforms.ToTensor()])
 
 
-DATA_PATH \
-    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e" \
-    + "/baidu_train_data/all/"
-
 # DATA_PATH \
 #     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e" \
-#     + "/baidu_train_data/mini/"
+#     + "/baidu_train_data/all/"
+
+DATA_PATH \
+    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e" \
+    + "/baidu_train_data/mini/"
 
 
 class NuscDataset(Dataset):
@@ -39,7 +47,15 @@ class NuscDataset(Dataset):
         in_feature = in_feature.astype(np.float32)
 
         out_feature = np.load(DATA_PATH + "out_feature/" + data_name)
-        out_feature = out_feature[..., 0]   # use only confidence
+
+        # use only confidence
+        # out_feature = out_feature[..., 0]
+
+        # with class
+        one_hot_class = onehot(out_feature[..., 1].astype(np.int8), 5)
+        out_feature = np.concatenate(
+            [out_feature[..., 0][..., None], one_hot_class], 2)
+
         out_feature = torch.FloatTensor(out_feature)
         if self.transform:
             in_feature = self.transform(in_feature)
