@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class BCNN(nn.Module):
-    def __init__(self, in_channels=8, n_class=6):
+    def __init__(self, in_channels=8, n_class=1):
         super().__init__()
         self.n_class = n_class
         self.relu = nn.ReLU(inplace=True)
@@ -70,7 +70,7 @@ class BCNN(nn.Module):
             96, 48, kernel_size=3, stride=1, padding=1)
 
         self.deconv0 = nn.ConvTranspose2d(
-            48, n_class + 6, kernel_size=4, stride=2, padding=1)
+            48, n_class, kernel_size=4, stride=2, padding=1)
 
     def forward(self, x):
         # conv
@@ -116,4 +116,6 @@ class BCNN(nn.Module):
 
         deconv0 = self.deconv0(deconv1_1)
 
-        return deconv0
+        output = torch.sigmoid(deconv0)
+
+        return output
