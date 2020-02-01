@@ -230,7 +230,7 @@ def train(epo_num, pretrained_model):
         prev_time = cur_time
 
         torch.save(bcnn_model.state_dict(),
-                   'checkpoints/bcnn_latestmodel_0125.pt')
+                   'checkpoints/bcnn_latestmodel_all_0201.pt')
         print('epoch train loss = %f, epoch test loss = %f, best_loss = %f, %s'
               % (train_loss/len(train_dataloader),
                  test_loss/len(test_dataloader),
@@ -241,7 +241,7 @@ def train(epo_num, pretrained_model):
                 best_loss, test_loss/len(test_dataloader)))
             best_loss = test_loss/len(test_dataloader)
             torch.save(bcnn_model.state_dict(),
-                       'checkpoints/bcnn_bestmodel_0125.pt')
+                       'checkpoints/bcnn_bestmodel_all_0201.pt')
 
 
 if __name__ == "__main__":

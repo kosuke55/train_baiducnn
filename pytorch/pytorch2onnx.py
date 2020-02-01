@@ -10,7 +10,7 @@ dynamic_axes = dict(
     zip(input_names, [{0: 'batch_size'} for i in range(len(input_names))]))
 
 pretrained_model \
-    = "/home/kosuke/catkin_ws_autoware/src/autoware_perception/lidar_apollo_cnn_seg_detect/train_baiducnn/pytorch/checkpoints/bcnn_bestmodel_0122.pt"
+    = "/home/kosuke/catkin_ws_autoware/src/autoware_perception/lidar_apollo_cnn_seg_detect/train_baiducnn/pytorch/checkpoints/bcnn_bestmodel_all_0125.pt"
 bcnn_model = BCNN()
 bcnn_model.load_state_dict(torch.load(pretrained_model))
 x = Variable(torch.randn(1, 8, 640, 640))
