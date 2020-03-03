@@ -3,13 +3,6 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
-import sys
-OPENCV_PATH \
-    = "/home/kosuke/.pyenv/versions/anaconda3-2019.03"\
-    + "/lib/python3.7/site-packages"
-
-sys.path = [OPENCV_PATH] + sys.path
-print(sys.path)
 
 
 def onehot(data, n):
