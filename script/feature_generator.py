@@ -23,7 +23,6 @@ class Feature_generator():
         self.mean_intensity_data = 5
         self.distance_data = 6
         self.nonempty_data = 7
-        # this is mistake. chanel is first.
         self.feature = np.zeros((self.siz, 8), dtype=np.float16)
 
         for row in range(self.height):
@@ -31,11 +30,8 @@ class Feature_generator():
                 idx = row * self.width + col
                 center_x = bcu.Pixel2pc(row, self.height, self.range)
                 center_y = bcu.Pixel2pc(col, self.width, self.range)
-                # direction
                 self.feature[idx, self.direction_data] \
                     = np.arctan2(center_x, center_y) / (2.0 * np.pi)
-                # = np.arctan2(center_y, center_x) * 180 / np.pi (for debug)
-                # distance
                 self.feature[idx, self.distance_data] \
                     = np.hypot(center_x, center_y) / 60 - 0.5
 
@@ -93,6 +89,7 @@ class Feature_generator():
             self.feature[i, self.count_data] \
                 = self.logCount(int(self.feature[i, self.count_data]))
 
+
 if __name__ == "__main__":
     feature_generator = Feature_generator()
     points = feature_generator.load_pc_from_file("../pcd/sample.pcd.bin")
@@ -100,15 +97,7 @@ if __name__ == "__main__":
     for i in range(10):
         print(points[i])
     feature_generator.generate(points)
-    # this can be loaded np.fromfile("feature.bin").reshape([-1,8])
-    # feature_generator.feature.tofile("feature.bin")
     feature = feature_generator.feature
     for i in range(8):
         print("{}-----{}".format(i, np.count_nonzero(feature[:, i])))
-    # feature = feature.T.reshape(
-    #     1, 8, feature_generator.height, feature_generator.width)
-    # # feature = feature_generator.feature.reshape(
-    # #     1, feature_generator.width, feature_generator.height, 8)
-    # with h5py.File('feature.h5', 'w') as f:
-    #     f.create_dataset('feature', data=feature)
-    # print(feature_generator.feature)
+
