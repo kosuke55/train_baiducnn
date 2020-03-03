@@ -100,4 +100,3 @@ if __name__ == "__main__":
     feature = feature_generator.feature
     for i in range(8):
         print("{}-----{}".format(i, np.count_nonzero(feature[:, i])))
-

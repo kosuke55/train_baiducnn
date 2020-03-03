@@ -12,8 +12,8 @@ def Pc2Pixel(in_pc, in_range, out_size):
     return int(math.floor((in_range - in_pc) * inv_res))
 
 
-# retutn the distance from my car to center of the grid.
-# Pc means point cloud = real world scale. so transform pixel scale to real world scale
+# retutn the distance from own car to the center of the selected grid.
+# transform pixel scale to real world scale.
 def Pixel2pc(in_pixel, in_size, out_range):
     res = 2.0 * out_range / in_size
     return out_range - (in_pixel + 0.5) * res

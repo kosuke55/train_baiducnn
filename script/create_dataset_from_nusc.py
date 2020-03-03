@@ -107,26 +107,19 @@ for my_scene in nusc.scene:
 
         for box_idx, box in enumerate(boxes):
             label = 0
-            # print(box.name.split(".")[0])
             if(box.name.split(".")[0] == "vehicle"):
                 if(box.name.split(".")[1] == "car"):
-                    # print("car")
                     label = 1
                 elif(box.name.split(".")[1] == "bus"):
-                    # print("bus")
                     label = 2
                 elif(box.name.split(".")[1] == "truck"):
-                    # print("truck")
                     label = 2
                 elif(box.name.split(".")[1] == "bicycle"):
-                    # print("bicycle")
                     label = 3
             elif(box.name.split(".")[0] == "human"):
                 label = 4
             else:
-                # ignore object
                 continue
-            # print("box_idx  {}/{}".format(box_idx, len(boxes))n)
             view = np.eye(4)
 
             corners3d = view_points(box.corners(), view, normalize=False)
