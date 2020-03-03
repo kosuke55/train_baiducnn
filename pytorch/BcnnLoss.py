@@ -1,14 +1,12 @@
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn._reduction as _Reduction
 from torch.nn import Module
 import warnings
 
 
 class bcnn_loss(nn.Module):
-
     def __init__(self):
         super(bcnn_loss, self).__init__()
 
@@ -23,14 +21,10 @@ class bcnn_loss(nn.Module):
 
         loss = confidence_loss + 0.01 * class_loss
 
-        # print("confidence_loss", confidence_loss)
-        # print("class_loss", class_loss)
-
         return loss
 
 
 class wmse(nn.Module):
-
     def __init__(self):
         super(wmse, self).__init__()
 
@@ -40,15 +34,14 @@ class wmse(nn.Module):
         return loss
 
 
-def wmse_loss(input, target, weight, size_average=None, reduce=None, reduction='mean'):
-
+def wmse_loss(input, target, weight, size_average=None,
+              reduce=None, reduction='mean'):
     if not (target.size() == input.size()):
         warnings.warn(
-            "Using a target size ({}) that is different to the input size ({}). "
+            "Using a target size ({}) that is different to the input size ({})."
             "This will likely lead to incorrect results due to broadcasting. "
             "Please ensure they have the same size.".format(
-                target.size(), input.size()),
-            stacklevel=2)
+                target.size(), input.size()), stacklevel=2)
     if size_average is not None or reduce is not None:
         reduction = _Reduction.legacy_get_string(size_average, reduce)
     if target.requires_grad:

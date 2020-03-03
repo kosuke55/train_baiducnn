@@ -53,7 +53,6 @@ def train(epo_num, pretrained_model):
             pos_weight[nonzeroidx] = 1.
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)  # 640 640
-            # criterion = wmse().to(device)
             criterion = bcnn_loss().to(device)
             nusc = nusc.to(device)
             nusc_msk = nusc_msk.to(device)  # 1 640 640 6
@@ -64,8 +63,9 @@ def train(epo_num, pretrained_model):
             confidence = output[:, 0, :, :]
             pred_class = output[:, 1:6, :, :]
 
+            # 6 640 640, 1 640 640 6, 640 640
             loss = criterion(
-                output, nusc_msk.transpose(1, 3).transpose(2, 3), pos_weight)  # 1 6 640 640, 1 640 640 6, 640 640
+                output, nusc_msk.transpose(1, 3).transpose(2, 3), pos_weight)
             loss.backward()
             iter_loss = loss.item()
             train_loss += iter_loss
@@ -74,6 +74,8 @@ def train(epo_num, pretrained_model):
             confidence_np = confidence.cpu().detach().numpy().copy()
             confidence_np = confidence_np.transpose(1, 2, 0)  # 640 640 1
             confidence_img = np.zeros((640, 640, 1), dtype=np.uint8)
+            # conf_idx = np.where(
+            #     confidence_np[..., 0] > confidence_np[..., 0].mean())
             conf_idx = np.where(confidence_np[..., 0] > 0.5)
             confidence_img[conf_idx] = 255
             confidence_img = confidence_img.transpose(2, 0, 1)  # 1 640 640
@@ -108,7 +110,6 @@ def train(epo_num, pretrained_model):
             label_img[human_idx] = [0, 255, 255]
             label_img = label_img.transpose(2, 0, 1)
 
-            # print("confidence_img.shape  =  ", confidence_img.shape)
             nusc_msk_img = nusc_msk[..., 0].cpu().detach().numpy().copy()
             nusc_img = nusc[:, 7, ...].cpu().detach().numpy().copy()
             if np.mod(index, 25) == 0:
@@ -163,7 +164,8 @@ def train(epo_num, pretrained_model):
                 confidence_np = confidence.cpu().detach().numpy().copy()
                 confidence_np = confidence_np.transpose(1, 2, 0)  # 640 640 1
                 confidence_img = np.zeros((640, 640, 1), dtype=np.uint8)
-                # conf_idx = np.where(confidence_np[..., 0] > confidence_np[..., 0].mean())
+                # conf_idx = np.where(
+                #     confidence_np[..., 0] > confidence_np[..., 0].mean())
                 conf_idx = np.where(confidence_np[..., 0] > 0.5)
                 confidence_img[conf_idx] = 255
                 confidence_img = confidence_img.transpose(2, 0, 1)  # 1 640 640
@@ -232,14 +234,14 @@ def train(epo_num, pretrained_model):
         torch.save(bcnn_model.state_dict(),
                    'checkpoints/bcnn_latestmodel_all_0201.pt')
         print('epoch train loss = %f, epoch test loss = %f, best_loss = %f, %s'
-              % (train_loss/len(train_dataloader),
-                 test_loss/len(test_dataloader),
+              % (train_loss / len(train_dataloader),
+                 test_loss / len(test_dataloader),
                  best_loss,
                  time_str))
-        if best_loss > test_loss/len(test_dataloader):
+        if best_loss > test_loss / len(test_dataloader):
             print('update best model {} -> {}'.format(
-                best_loss, test_loss/len(test_dataloader)))
-            best_loss = test_loss/len(test_dataloader)
+                best_loss, test_loss / len(test_dataloader)))
+            best_loss = test_loss / len(test_dataloader)
             torch.save(bcnn_model.state_dict(),
                        'checkpoints/bcnn_bestmodel_all_0201.pt')
 
