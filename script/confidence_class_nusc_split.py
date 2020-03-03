@@ -10,11 +10,9 @@ python 3.7.3
 import numpy as np
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
-import matplotlib.pyplot as plt
-from typing import Tuple
-import h5py
 import feature_generator as fg
 import os
+
 
 def view_points(points: np.ndarray,
                 view: np.ndarray,
@@ -58,19 +56,17 @@ def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
     return mask
 
 
-# SAVE_DIR \
-#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/mini/"
+dataroot \
+    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
+
 SAVE_DIR \
     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/all/"
 os.makedirs(os.path.join(SAVE_DIR + "in_feature"), exist_ok=True)
 os.makedirs(os.path.join(SAVE_DIR + "out_feature"), exist_ok=True)
 os.makedirs(os.path.join(SAVE_DIR + "loss_weight"), exist_ok=True)
-# dataroot = '/home/kosuke/dataset/nuScenes/'
-dataroot \
-    = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
+
 # nusc_version = "v1.0-mini"
 nusc_version = "v1.0-trainval"
-
 
 nusc = NuScenes(
     version=nusc_version,
@@ -84,7 +80,6 @@ cols = 640
 gsize = 2 * grid_range / size
 channel = 5
 
-
 data_id = 0
 end_id = None
 
@@ -94,8 +89,6 @@ for my_scene in nusc.scene:
 
     while(token != ''):
         print("--- {} ".format(data_id) + token + " ---")
-        # out_feature = np.zeros((1, size, size, 1), dtype=np.float32)
-        # loss_weight = np.full((1, size, size, 1), 0.5, dtype=np.float16)
         out_feature = np.zeros((size, size, 2), dtype=np.float16)
         loss_weight = np.full((size, size, 1), 0.5, dtype=np.float16)
         my_sample = nusc.get('sample', token)
@@ -171,8 +164,6 @@ for my_scene in nusc.scene:
                     # grid_center is in meter coords
                     grid_center = np.array([grid_centers[i], grid_centers[j]])
                     if(points_in_box2d(box2d, grid_center)):
-                        # out_feature[0, i, j, 0] = 1.
-                        # loss_weight[0, i, j, 0] = 1.
                         out_feature[i, j, 0] = 1.
                         out_feature[i, j, 1] = label
                         loss_weight[i, j, 0] = 1.
