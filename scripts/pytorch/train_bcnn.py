@@ -1,15 +1,17 @@
-from datetime import datetime
-
+import argparse
 import numpy as np
 import torch
 import torch.optim as optim
 import visdom
-from NuscData import test_dataloader, train_dataloader
-from BcnnLoss import bcnn_loss
+
 from BCNN import BCNN
+from BcnnLoss import bcnn_loss
+from datetime import datetime
+from NuscData import test_dataloader, train_dataloader
 
 
-def train(epo_num, pretrained_model):
+def train(epo_num, pretrained_model, train_data_num, test_data_num):
+    now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
 
@@ -132,6 +134,10 @@ def train(epo_num, pretrained_model):
                            opts=dict(
                                title='train class pred(GT, Pred)'))
 
+            if index == train_data_num:
+                print("Finish train {} data. So start test.".format(index))
+                break
+
         avg_train_loss = train_loss / len(train_dataloader)
 
         test_loss = 0
@@ -205,6 +211,9 @@ def train(epo_num, pretrained_model):
                                win='test_class',
                                opts=dict(
                                    title='test class pred(GT, Pred)'))
+                if index == test_data_num:
+                    print("Finish test {} data".format(index))
+                    break
 
             avg_test_loss = test_loss / len(test_dataloader)
 
@@ -220,7 +229,7 @@ def train(epo_num, pretrained_model):
         prev_time = cur_time
 
         torch.save(bcnn_model.state_dict(),
-                   'checkpoints/bcnn_latestmodel_all_0201.pt')
+                   'checkpoints/bcnn_latestmodel_' + now + '.pt')
         print('epoch train loss = %f, epoch test loss = %f, best_loss = %f, %s'
               % (train_loss / len(train_dataloader),
                  test_loss / len(test_dataloader),
@@ -231,9 +240,24 @@ def train(epo_num, pretrained_model):
                 best_loss, test_loss / len(test_dataloader)))
             best_loss = test_loss / len(test_dataloader)
             torch.save(bcnn_model.state_dict(),
-                       'checkpoints/bcnn_bestmodel_all_0201.pt')
+                       'checkpoints/bcnn_bestmodel_' + now + '.pt')
 
 
 if __name__ == "__main__":
-    pretrained_model = "checkpoints/bcnn_bestmodel_0125.pt"
-    train(epo_num=100000, pretrained_model=pretrained_model)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--pretrained_model', '-p', type=str,
+                        help='Pretrained model',
+                        default='checkpoints/bcnn_bestmodel_all_0304.pt')
+    parser.add_argument('--train_data_num', '-tr', type=int,
+                        help='How much data to use for training',
+                        default=1e10)
+    parser.add_argument('--test_data_num', '-te', type=int,
+                        help='How much data to use for testing',
+                        default=1e10)
+
+    args = parser.parse_args()
+    train(epo_num=100000,
+          pretrained_model=args.pretrained_model,
+          train_data_num=args.train_data_num,
+          test_data_num=args.test_data_num)
