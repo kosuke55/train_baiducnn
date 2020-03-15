@@ -36,7 +36,7 @@ class Feature_generator():
                     = np.hypot(center_x, center_y) / 60 - 0.5
 
     def logCount(self, count):
-        if(count < len(self.log_table)):
+        if count < len(self.log_table):
             return self.log_table[count]
         else:
             return np.log(1 + count)
@@ -50,16 +50,16 @@ class Feature_generator():
         inv_res_x = 0.5 * self.width / self.range
         inv_res_y = 0.5 * self.height / self.range
         for i in range(len(points)):
-            if(points[i, 2] <= self.min_height or
-               points[i, 2] >= self.max_height):
+            if (points[i, 2] <= self.min_height or
+                    points[i, 2] >= self.max_height):
                 self.map_idx[i] = -1
             # project point cloud to 2d map. clac in which grid point is.
             # * the coordinates of x and y are exchanged here
             # (row <-> x, column <-> y)
             pos_x = bcu.F2I(points[i, 1], self.range, inv_res_x)  # col
             pos_y = bcu.F2I(points[i, 0], self.range, inv_res_y)  # row
-            if(pos_x >= self.width or pos_x < 0 or
-               pos_y >= self.height or pos_y < 0):
+            if (pos_x >= self.width or pos_x < 0 or
+                    pos_y >= self.height or pos_y < 0):
                 self.map_idx[i] = -1
                 continue
             self.map_idx[i] = pos_y * self.width + pos_x
@@ -67,7 +67,7 @@ class Feature_generator():
             pz = points[i, 2]
             # if use nuscenes divide intensity by 255.
             pi = points[i, 3] / 255.0
-            if(self.feature[idx, self.max_height_data] < pz):
+            if self.feature[idx, self.max_height_data] < pz:
                 self.feature[idx, self.max_height_data] = pz
                 # not I_max but I of z_max ?
                 self.feature[idx, self.top_intensity_data] = pi
@@ -78,7 +78,7 @@ class Feature_generator():
 
         for i in range(self.siz):
             eps = 1e-6
-            if(self.feature[i, self.count_data] < eps):
+            if self.feature[i, self.count_data] < eps:
                 self.feature[i, self.max_height_data] = 0.0
             else:
                 self.feature[i, self.mean_height_data] \

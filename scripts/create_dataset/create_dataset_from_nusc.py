@@ -107,16 +107,16 @@ for my_scene in nusc.scene:
 
         for box_idx, box in enumerate(boxes):
             label = 0
-            if(box.name.split(".")[0] == "vehicle"):
-                if(box.name.split(".")[1] == "car"):
+            if box.name.split(".")[0] == "vehicle":
+                if box.name.split(".")[1] == "car":
                     label = 1
-                elif(box.name.split(".")[1] == "bus"):
+                elif box.name.split(".")[1] == "bus":
                     label = 2
-                elif(box.name.split(".")[1] == "truck"):
+                elif box.name.split(".")[1] == "truck":
                     label = 2
-                elif(box.name.split(".")[1] == "bicycle"):
+                elif box.name.split(".")[1] == "bicycle":
                     label = 3
-            elif(box.name.split(".")[0] == "human"):
+            elif box.name.split(".")[0] == "human":
                 label = 4
             else:
                 continue
@@ -155,7 +155,7 @@ for my_scene in nusc.scene:
                 for j in range(search_area_bottom_idx, search_area_top_idx):
                     # grid_center is in meter coords
                     grid_center = np.array([grid_centers[i], grid_centers[j]])
-                    if(points_in_box2d(box2d, grid_center)):
+                    if points_in_box2d(box2d, grid_center):
                         out_feature[i, j, 0] = 1.
                         out_feature[i, j, 1] = label
                         loss_weight[i, j, 0] = 1.
@@ -179,7 +179,7 @@ for my_scene in nusc.scene:
 
         token = my_sample['next']
         data_id += 1
-        if(data_id == end_id):
+        if data_id == end_id:
             break
-    if(data_id == end_id):
+    if data_id == end_id:
         break
