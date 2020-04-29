@@ -10,11 +10,13 @@ import visdom
 from BCNN import BCNN
 from BcnnLoss import bcnn_loss
 from datetime import datetime
-from NuscData import test_dataloader, train_dataloader
+from NuscData import load_dataset
 
 
-def train(epo_num, pretrained_model, train_data_num, test_data_num,
-          width=672, height=672):
+def train(data_path, max_epoch, pretrained_model,
+          train_data_num, test_data_num,
+          width=640, height=640):
+    train_dataloader, test_dataloader = load_dataset(data_path)
     print(width, height)
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
@@ -43,7 +45,7 @@ def train(epo_num, pretrained_model, train_data_num, test_data_num,
         optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-8, momentum=0.9)
 
     prev_time = datetime.now()
-    for epo in range(epo_num):
+    for epo in range(max_epoch):
         train_loss = 0
         bcnn_model.train()
         for index, (nusc, nusc_msk) in enumerate(train_dataloader):
@@ -67,6 +69,8 @@ def train(epo_num, pretrained_model, train_data_num, test_data_num,
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
+            print(nusc_msk.shape)
+            print(output.shape)
             loss = criterion(
                 output, nusc_msk.transpose(1, 3).transpose(2, 3), pos_weight)
             loss.backward()
@@ -257,19 +261,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    parser.add_argument('--data_path', '-dp', type=str,
+                        help='Training data path',
+                        default='/media/kosuke/HD-PNFU3/0413/nusc/mini-0421/')
+    parser.add_argument('--max_epoch', '-me', type=int,
+                        help='max epoch',
+                        default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model',
                         default='checkpoints/mini_instance.pt')
     parser.add_argument('--train_data_num', '-tr', type=int,
                         help='How much data to use for training',
-                        default=50000)
+                        default=1000000)
     parser.add_argument('--test_data_num', '-te', type=int,
                         help='How much data to use for testing',
-                        default=50000)
+                        default=1000000)
 
     args = parser.parse_args()
-    train(epo_num=100000,
+    train(data_path=args.data_path,
+          max_epoch=args.max_epoch,
           pretrained_model=args.pretrained_model,
           train_data_num=args.train_data_num,
-          test_data_num=args.test_data_num,
-          width=640, height=640)
+          test_data_num=args.test_data_num)

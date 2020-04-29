@@ -11,6 +11,9 @@ class bcnn_loss(nn.Module):
         super(bcnn_loss, self).__init__()
 
     def forward(self, output, target, weight):
+        # print("foward")
+        # print(output.shape)
+        # print(target.shape)
         # print(output.shape)
         category_diff = output[:, 0, ...] - target[:, 0, ...]
         category_loss = torch.sum((weight * category_diff) ** 2)

@@ -8,8 +8,6 @@ class Feature_generator():
         self.range = grid_range
         self.width = int(width)
         self.height = int(height)
-        # print(width, self.width)
-        # print(height, self.height)
         self.siz = self.width * self.height
         self.min_height = -5.0
         self.max_height = 5.0
@@ -56,7 +54,6 @@ class Feature_generator():
         return np.fromfile(pc_f, dtype=np.float32, count=-1).reshape([-1, 4])
 
     def generate(self, points):
-        # print("points.shape = " + str(points.shape))
         self.map_idx = np.zeros(len(points))
         inv_res_x = 0.5 * self.width / self.range
         inv_res_y = 0.5 * self.height / self.range
@@ -64,11 +61,8 @@ class Feature_generator():
             if points[i, 2] <= self.min_height or \
                points[i, 2] >= self.max_height:
                 self.map_idx[i] = -1
-            # project point cloud to 2d map. clac in which grid point is.
-            # * the coordinates of x and y are exchanged here
-            # (row <-> x, column <-> y)
-            pos_x = bcu.F2I(points[i, 1], self.range, inv_res_x)  # col
-            pos_y = bcu.F2I(points[i, 0], self.range, inv_res_y)  # row
+            pos_x = bcu.F2I(points[i, 1], self.range, inv_res_x)
+            pos_y = bcu.F2I(points[i, 0], self.range, inv_res_y)
             if pos_x >= self.width or pos_x < 0 or \
                pos_y >= self.height or pos_y < 0:
                 self.map_idx[i] = -1
@@ -76,11 +70,9 @@ class Feature_generator():
             self.map_idx[i] = pos_y * self.width + pos_x
             idx = int(self.map_idx[i])
             pz = points[i, 2]
-            # if use nuscenes divide intensity by 255.
             pi = points[i, 3] / 255.0
             if self.feature[idx, self.max_height_data] < pz:
                 self.feature[idx, self.max_height_data] = pz
-                # not I_max but I of z_max ?
                 self.feature[idx, self.top_intensity_data] = pi
 
             self.feature[idx, self.mean_height_data] += pz
@@ -99,15 +91,3 @@ class Feature_generator():
                 self.feature[i, self.nonempty_data] = 1.0
             self.feature[i, self.count_data] \
                 = self.logCount(int(self.feature[i, self.count_data]))
-
-
-if __name__ == "__main__":
-    feature_generator = Feature_generator()
-    points = feature_generator.load_pc_from_file("../pcd/sample.pcd.bin")
-    print(points.shape)
-    for i in range(10):
-        print(points[i])
-    feature_generator.generate(points)
-    feature = feature_generator.feature
-    for i in range(8):
-        print("{}-----{}".format(i, np.count_nonzero(feature[:, i])))
