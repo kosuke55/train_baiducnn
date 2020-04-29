@@ -1,6 +1,18 @@
-import baidu_cnn_util as bcu
+#!/usr/bin/env python
+# coding: utf-8
+
+import math
 
 import numpy as np
+
+
+def F2I(val, orig, scale):
+    return int(math.floor((orig - val) * scale))
+
+
+def Pixel2pc(in_pixel, in_size, out_range):
+    res = 2.0 * out_range / in_size
+    return out_range - (in_pixel + 0.5) * res
 
 
 class Feature_generator():
@@ -37,8 +49,8 @@ class Feature_generator():
         for row in range(self.height):
             for col in range(self.width):
                 idx = row * self.width + col
-                center_x = bcu.Pixel2pc(row, self.height, self.range)
-                center_y = bcu.Pixel2pc(col, self.width, self.range)
+                center_x = Pixel2pc(row, self.height, self.range)
+                center_y = Pixel2pc(col, self.width, self.range)
                 self.feature[idx, self.direction_data] \
                     = np.arctan2(center_y, center_x) / (2.0 * np.pi)
                 self.feature[idx, self.distance_data] \
@@ -61,8 +73,8 @@ class Feature_generator():
             if points[i, 2] <= self.min_height or \
                points[i, 2] >= self.max_height:
                 self.map_idx[i] = -1
-            pos_x = bcu.F2I(points[i, 1], self.range, inv_res_x)
-            pos_y = bcu.F2I(points[i, 0], self.range, inv_res_y)
+            pos_x = F2I(points[i, 1], self.range, inv_res_x)
+            pos_y = F2I(points[i, 0], self.range, inv_res_y)
             if pos_x >= self.width or pos_x < 0 or \
                pos_y >= self.height or pos_y < 0:
                 self.map_idx[i] = -1
