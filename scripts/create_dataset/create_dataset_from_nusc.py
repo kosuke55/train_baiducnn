@@ -1,44 +1,21 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
-"""
-python 3.7.3
-
-"""
-
+import argparse
+import os
 import sys
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+for path in sys.path:
+    if 'opt/ros/' in path:
+        print('sys.path.remove({})'.format(path))
+        sys.path.remove(path)
 
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
+
 import feature_generator as fg
-import os
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-
-def view_points(points: np.ndarray,
-                view: np.ndarray,
-                normalize: bool) -> np.ndarray:
-
-    assert view.shape[0] <= 4
-    assert view.shape[1] <= 4
-    assert points.shape[0] == 3
-
-    viewpad = np.eye(4)
-    viewpad[:view.shape[0], :view.shape[1]] = view
-
-    nbr_points = points.shape[1]
-
-    # Do operation in homogenous coordinates
-    points = np.concatenate((points, np.ones((1, nbr_points))))
-    points = np.dot(viewpad, points)
-    points = points[:3, :]
-    if normalize:
-        points = points / points[2:3, :].repeat(3, 0).reshape(3, nbr_points)
-
-    return points
 
 
 def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
@@ -60,278 +37,154 @@ def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
     return mask
 
 
-# dataroot \
-#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/nuScenes/trainval"
-# SAVE_DIR \
-#     = "/media/kosuke/f798886c-8a70-48a4-9b66-8c9102072e3e/baidu_train_data/all/"
+def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
+                   nusc_version='v1.0-mini', end_id=None):
 
-# dataroot \
-#     = "/media/kosuke/HD-PNFU3/0413/nusc/trainval"
-dataroot \
-    = "/media/kosuke/HD-PNFU3/0413/nusc/v1.0-mini"
-SAVE_DIR \
-    = "/media/kosuke/HD-PNFU3/0413/nusc/mini-0427"
-# SAVE_DIR \
-#     = "/media/kosuke/HD-PNFU3/nusc/feature_instance_one/"
+    os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
+    os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
 
-os.makedirs(os.path.join(SAVE_DIR, "in_feature"), exist_ok=True)
-os.makedirs(os.path.join(SAVE_DIR, "out_feature"), exist_ok=True)
-os.makedirs(os.path.join(SAVE_DIR, "loss_weight"), exist_ok=True)
+    nusc = NuScenes(
+        version=nusc_version,
+        dataroot=dataroot, verbose=True)
+    ref_chan = 'LIDAR_TOP'
 
-nusc_version = "v1.0-mini"
-# nusc_version = "v1.0-trainval"
+    if width == height:
+        size = width
+    else:
+        raise Exception('Currently only supported if width and height are equal')
 
-nusc = NuScenes(
-    version=nusc_version,
-    dataroot=dataroot, verbose=True)
-ref_chan = 'LIDAR_TOP'
+    grid_length = 2. * grid_range / size
 
-grid_range = 60
-size = 640
-width = 640
-height = 640
-# grid_range = 70
-# size = 672
-# width = 672
-# height = 672
-gsize = 2 * grid_range / size
-channel = 5
+    data_id = 0
+    for my_scene in nusc.scene:
+        first_sample_token = my_scene['first_sample_token']
+        token = first_sample_token
 
-data_id = 0
-end_id = None
-# end_id = 1
+        while(token != ''):
+            print('--- {} '.format(data_id) + token + ' ---')
+            out_feature = np.zeros((size, size, 7), dtype=np.float16)
+            my_sample = nusc.get('sample', token)
+            sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
+            sample_rec = nusc.get('sample', sd_record['sample_token'])
+            chan = sd_record['channel']
 
-count = 0
-for my_scene in nusc.scene:
-    first_sample_token = my_scene['first_sample_token']
-    token = first_sample_token
+            pc, times = LidarPointCloud.from_file_multisweep(
+                nusc, sample_rec, chan, ref_chan, nsweeps=10)
+            _, boxes, _ = nusc.get_sample_data(
+                sd_record['token'], box_vis_level=0)
+            points = pc.points[:3, :]
 
-    while(token != ''):
-        print("--- {} ".format(data_id) + token + " ---")
-        out_feature = np.zeros((size, size, 7), dtype=np.float16)
-        loss_weight = np.full((size, size, 1), 0.5, dtype=np.float16)
-        my_sample = nusc.get('sample', token)
-        sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
-        sample_rec = nusc.get('sample', sd_record['sample_token'])
-        chan = sd_record['channel']
+            grid_ticks = np.arange(
+                -grid_range, grid_range + grid_length, grid_length)
 
-        pc, times = LidarPointCloud.from_file_multisweep(
-            nusc, sample_rec, chan, ref_chan, nsweeps=10)
-        _, boxes, _ = nusc.get_sample_data(sd_record['token'], box_vis_level=0)
+            for box_idx, box in enumerate(boxes):
+                label = 0
+                if box.name.split('.')[0] == 'vehicle':
+                    if box.name.split('.')[1] == 'car':
+                        label = 1
+                    elif box.name.split('.')[1] == 'bus':
+                        label = 2
+                    elif box.name.split('.')[1] == 'truck':
+                        label = 2
+                    elif box.name.split('.')[1] == 'bicycle':
+                        label = 3
+                elif box.name.split('.')[0] == 'human':
+                    label = 4
+                else:
+                    continue
 
-        # not needed. This is equal to points = pc.points[:3, :]
-        # points = pc.points[:3, :]
-        points = view_points(pc.points[:3, :], np.eye(4), normalize=False)
+                height_pt = np.linalg.norm(box.corners().T[0] - box.corners().T[3])
 
-        if count == 0:
-            header = '''# .PCD v0.7 - Point Cloud Data file format
-            VERSION 0.7
-            FIELDS x y z rgb
-            SIZE 4 4 4 4
-            TYPE F F F F
-            COUNT 1 1 1 1
-            WIDTH %d
-            HEIGHT %d
-            VIEWPOINT 0 0 0 1 0 0 0
-            POINTS %d
-            DATA ascii'''
-            with open(os.path.join(
-                    SAVE_DIR, "00000.pcd"), 'w') as f:
-                f.write(header % (pc.points.shape[1], 1, pc.points.shape[1]))
-                f.write("\n")
-                for p in pc.points.T.tolist():
-                    f.write('%f %f %f %e' % (p[0], p[1], p[2], p[3]))
-                    f.write("\n")
-        count += 1
+                corners2d = box.corners()[:2, :]
+                box2d = corners2d.T[[2, 3, 7, 6]]
+                # find search area
+                box2d_left = box2d[:, 0].min()
+                box2d_right = box2d[:, 0].max()
+                box2d_top = box2d[:, 1].max()
+                box2d_bottom = box2d[:, 1].min()
 
-        # print(points)
-        # print(points_hoge)
-        # print(points.shape)
-        # print(points_hoge.shape)
-        # if points == points_hoge:
-        #     print("equal")
-        # else:
-        #     print("not equal")
-        dists = np.sqrt(np.sum(pc.points[:2, :] ** 2, axis=0))
+                grid_centers \
+                    = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
 
-        ticks = np.arange(-grid_range, grid_range + gsize, gsize)
+                search_area_left_idx = np.abs(
+                    grid_centers - box2d_left).argmin() - 1
+                search_area_right_idx = np.abs(
+                    grid_centers - box2d_right).argmin() + 1
+                search_area_bottom_idx = np.abs(
+                    grid_centers - box2d_bottom).argmin() - 1
+                search_area_top_idx = np.abs(
+                    grid_centers - box2d_top).argmin() + 1
 
-        fig = plt.figure()
-        # ax = fig.add_subplot(111)
-        for box_idx, box in enumerate(boxes):
-            label = 0
-            if box.name.split(".")[0] == "vehicle":
-                if box.name.split(".")[1] == "car":
-                    label = 1
-                elif box.name.split(".")[1] == "bus":
-                    label = 2
-                elif box.name.split(".")[1] == "truck":
-                    label = 2
-                elif box.name.split(".")[1] == "bicycle":
-                    label = 3
-            elif box.name.split(".")[0] == "human":
-                label = 4
-            else:
-                continue
-            view = np.eye(4)
+                box2d_center = box2d.mean(axis=0)
+                box_fill_area = np.array([box2d[:, 0], box2d[:, 1]])
 
-            corners3d = view_points(box.corners(), view, normalize=False)
-            height_pt = np.linalg.norm(corners3d.T[0] - corners3d.T[3])
+                c = patches.Circle(xy=(box2d_center[0], box2d_center[1]),
+                                   radius=0.1, fc='b', ec='b', fill=False)
 
-            # corners 2d
-            corners = corners3d[:2, :]
-            box2d = corners.T[[2, 3, 7, 6]]
-            # print("box2d: ", box2d)
+                # start from lefght bottom, go right.
+                for i in range(search_area_left_idx, search_area_right_idx):
+                    for j in range(
+                            search_area_bottom_idx, search_area_top_idx):
+                        # grid_center is in meter coords
+                        grid_center = np.array(
+                            [grid_centers[i], grid_centers[j]])
+                        if points_in_box2d(box2d, grid_center):
+                            out_feature[i, j, 0] = 1.  # category_pt
+                            instance_pt = box2d_center - grid_center
+                            out_feature[i, j, 1] = instance_pt[0]
+                            out_feature[i, j, 2] = instance_pt[1]
+                            out_feature[i, j, 3] = 1.  # confidence_pt
+                            out_feature[i, j, 4] = label  # classify_pt
+                            out_feature[i, j, 5] = 0.  # heading_pt (unused)
+                            out_feature[i, j, 6] = height_pt  # height_pt
 
-            # object_center = [np.average(box2d[:, 0]), np.average(box2d[:, 1])]
+            feature_generator = fg.Feature_generator(grid_range, width, height)
+            feature_generator.generate(pc.points.T)
+            in_feature = feature_generator.feature
+            in_feature = in_feature.reshape(size, size, 8)
 
-            # corners_height = corners3d[2, :]
-            # height_pt = corners_height[0] - corners_height[2]
+            # instance_pt is flipped due to flip
+            out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
+            out_feature[:, :, 1:3] *= -1
 
-            # find search_area
-            box2d_left = box2d[:, 0].min()
-            box2d_right = box2d[:, 0].max()
-            box2d_top = box2d[:, 1].max()
-            box2d_bottom = box2d[:, 1].min()
+            np.save(os.path.join(
+                save_dir, 'in_feature/{:05}'.format(data_id)), in_feature)
+            np.save(os.path.join(
+                save_dir, 'out_feature/{:05}'.format(data_id)), out_feature)
 
-            grid_centers = (ticks + gsize / 2)[:len(ticks) - 1]
-
-            search_area_left_idx = np.abs(
-                grid_centers - box2d_left).argmin() - 1
-            search_area_right_idx = np.abs(
-                grid_centers - box2d_right).argmin() + 1
-            search_area_bottom_idx = np.abs(
-                grid_centers - box2d_bottom).argmin() - 1
-            search_area_top_idx = np.abs(
-                grid_centers - box2d_top).argmin() + 1
-
-            box2d_center = box2d.mean(axis=0)
-            box_fill_area = np.array([box2d[:, 0], box2d[:, 1]])
-
-            plt.fill(box_fill_area[0], box_fill_area[1], color="b", alpha=0.1)
-            # plt.fill(box_fill_area[0], box_fill_area[1], color="b", alpha=0.1)
-            c = patches.Circle(xy=(box2d_center[0], box2d_center[1]),
-                               radius=0.1, fc='b', ec='b', fill=False)
-            # fig, ax = plt.subplots()
-            # ax.add_patch(c)
-            # print(object_center)
-            # print(box2d_center)
-            # raise
-            # start from lefght bottom, go right.
-            for i in range(search_area_left_idx, search_area_right_idx):
-                for j in range(search_area_bottom_idx, search_area_top_idx):
-                    # grid_center is in meter coords
-                    grid_center = np.array([grid_centers[i], grid_centers[j]])
-                    # fill_area = np.array([[(grid_center[0] - gsize / 2),
-                    #                        (grid_center[0] + gsize / 2),
-                    #                        (grid_center[0] + gsize / 2),
-                    #                        (grid_center[0] - gsize / 2)],
-                    #                       [(grid_center[1] + gsize / 2),
-                    #                        (grid_center[1] + gsize / 2),
-                    #                        (grid_center[1] - gsize / 2),
-                    #                        (grid_center[1] - gsize / 2)]])
-                    if points_in_box2d(box2d, grid_center):
-                    #     plt.fill(fill_area[0], fill_area[1], color="r", alpha=0.1)
-                    #     plt.arrow(x=grid_center[0],
-                    #               y=grid_center[1],
-                    #               dx=box2d_center[0] - grid_center[0],
-                    #               dy=box2d_center[1] - grid_center[1],
-                    #               width=0.01,
-                    #               head_width=0.01,
-                    #               head_length=0.01,
-                    #               length_includes_head=True,
-                    #               color='k')
-                        out_feature[i, j, 0] = 1.  # category_pt
-                        # instance_pt = object_center - grid_center
-                        instance_pt = box2d_center - grid_center
-                        # print("instace_pt  ", instance_pt)
-                        # print(i,j)
-                        out_feature[i, j, 1] = instance_pt[0]  # instance_pt x
-                        out_feature[i, j, 2] = instance_pt[1]  # instance_pt y
-                        # out_feature[i, j, 1] = box2d_center[0] - grid_center[0]
-                        # out_feature[i, j, 2] = box2d_center[1] - grid_center[1]
-                        out_feature[i, j, 3] = 1.  # confidence_pt
-                        out_feature[i, j, 4] = label  # classify_pt
-                        out_feature[i, j, 5] = 0  # heading_pt (unused)
-                        out_feature[i, j, 6] = height_pt  # height_pt
-
-                        loss_weight[i, j, 0] = 1.
-
-        # fill_area = np.array([[(grid_center[0] - gsize / 2),
-        #                        (grid_center[0] + gsize / 2),
-        #                        (grid_center[0] + gsize / 2),
-        #                        (grid_center[0] - gsize / 2)],
-        #                       [(grid_center[1] + gsize / 2),
-        #                        (grid_center[1] + gsize / 2),
-        #                        (grid_center[1] - gsize / 2),
-        #                        (grid_center[1] - gsize / 2)]])
-
-        # plt.fill(fill_area[0], fill_area[1], color="b", alpha=0.1)
+            token = my_sample['next']
+            data_id += 1
+            if data_id == end_id:
+                return
 
 
-        # just draw coords arrow
-        # fill_area = np.array([[(1 - gsize / 2),
-        #                        (1 + gsize / 2),
-        #                        (1 + gsize / 2),
-        #                        (1 - gsize / 2)],
-        #                       [(0 + gsize / 2),
-        #                        (0 + gsize / 2),
-        #                        (0 - gsize / 2),
-        #                        (0 - gsize / 2)]])
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-        # plt.fill(fill_area[0], fill_area[1], color="r", alpha=1)
+    parser.add_argument('--dataroot', '-dr', type=str,
+                        help='Nuscenes dataroot path',
+                        default='/media/kosuke/HD-PNFU3/0413/nusc/v1.0-mini')
+    parser.add_argument('--save_dir', '-sd', type=str,
+                        help='Dataset save directory',
+                        default='/media/kosuke/HD-PNFU3/0413/nusc/mini-672-0429')
+    parser.add_argument('--width', type=int,
+                        help='feature map width',
+                        default=672)
+    parser.add_argument('--height', type=int,
+                        help='feature map height',
+                        default=672)
+    parser.add_argument('--range', type=int,
+                        help='feature map range',
+                        default=70)
+    parser.add_argument('--nusc_version', type=str,
+                        help='Nuscenes version. v1.0-mini or v1.0-trainval',
+                        default='v1.0-mini')
 
-        # fill_area = np.array([[(0 - gsize / 2),
-        #                        (0 + gsize / 2),
-        #                        (0 + gsize / 2),
-        #                        (0 - gsize / 2)],
-        #                       [(1 + gsize / 2),
-        #                        (1 + gsize / 2),
-        #                        (1 - gsize / 2),
-        #                        (1 - gsize / 2)]])
-
-        # plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
-
-        # print(grid_centers)
-        # gsize *= 10
-        # fill_area = np.array([[(grid_centers[10] - gsize / 2),
-        #                        (grid_centers[10] + gsize / 2),
-        #                        (grid_centers[10] + gsize / 2),
-        #                        (grid_centers[10] - gsize / 2)],
-        #                       [(grid_centers[10] + gsize / 2),
-        #                        (grid_centers[10] + gsize / 2),
-        #                        (grid_centers[10] - gsize / 2),
-        #                        (grid_centers[10] - gsize / 2)]])
-        # plt.fill(fill_area[0], fill_area[1], color="g", alpha=1)
-
-        # plt.show()
-
-        # This is input feature
-        feature_generator = fg.Feature_generator(grid_range, width, height)
-        feature_generator.generate(pc.points.T)
-        in_feature = feature_generator.feature
-
-        # check if input data is correct
-        grid_centers = (ticks + gsize / 2)[:len(ticks) - 1]
-
-        # pos_y, pos_x, 8
-        in_feature = in_feature.reshape(size, size, 8)
-        # in_feature = in_feature.reshape(size, size, 6)
-        out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
-        out_feature[:, :, 1:3] *= -1
-        # out_feature[:, :, 1:3] = out_feature[:, :, 1:3] * -1  # instance_pt x
-        loss_weight = np.flip(np.flip(loss_weight, axis=0), axis=1)
-
-        np.save(os.path.join(
-            SAVE_DIR, "in_feature/{:05}".format(data_id)), in_feature)
-        np.save(os.path.join(
-            SAVE_DIR, "out_feature/{:05}".format(data_id)), out_feature)
-        np.save(os.path.join(
-            SAVE_DIR, "loss_weight/{:05}".format(data_id)), loss_weight)
-
-        token = my_sample['next']
-        data_id += 1
-        if data_id == end_id:
-            break
-    if data_id == end_id:
-        break
+    args = parser.parse_args()
+    create_dataset(dataroot=args.dataroot,
+                   save_dir=args.save_dir,
+                   width=args.width,
+                   height=args.height,
+                   grid_range=args.range,
+                   nusc_version=args.nusc_version, end_id=None)
