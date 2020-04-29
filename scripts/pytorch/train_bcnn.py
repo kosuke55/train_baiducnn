@@ -69,8 +69,6 @@ def train(data_path, max_epoch, pretrained_model,
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
-            print(nusc_msk.shape)
-            print(output.shape)
             loss = criterion(
                 output, nusc_msk.transpose(1, 3).transpose(2, 3), pos_weight)
             loss.backward()
