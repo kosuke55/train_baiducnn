@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import argparse
@@ -18,8 +18,8 @@ if __name__ == "__main__":
     parser.add_argument('--width', type=int,
                         help='feature map width',
                         default=640)
-    parser.add_argument('--width', type=int,
-                        help='feature map width',
+    parser.add_argument('--height', type=int,
+                        help='feature map height',
                         default=640)
     parser.add_argument('--channel', type=int,
                         help='feature map channel',
