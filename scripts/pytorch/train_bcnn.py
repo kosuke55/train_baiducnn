@@ -2,14 +2,15 @@
 # coding: utf-8
 
 import argparse
+
 import numpy as np
 import torch
 import torch.optim as optim
 import visdom
+from datetime import datetime
 
 from BCNN import BCNN
-from BcnnLoss import bcnn_loss
-from datetime import datetime
+from BcnnLoss import BcnnLoss
 from NuscData import load_dataset
 
 
@@ -17,7 +18,6 @@ def train(data_path, max_epoch, pretrained_model,
           train_data_num, test_data_num,
           width=640, height=640):
     train_dataloader, test_dataloader = load_dataset(data_path)
-    print(width, height)
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
@@ -59,7 +59,7 @@ def train(data_path, max_epoch, pretrained_model,
             pos_weight[nonzeroidx] = 1.
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
-            criterion = bcnn_loss().to(device)
+            criterion = BcnnLoss().to(device)
             nusc = nusc.to(device)
             nusc_msk = nusc_msk.to(device)
 
