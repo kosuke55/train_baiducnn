@@ -1,27 +1,34 @@
-from torch.autograd import Variable
-import torch.onnx
-from BCNN import BCNN
+#!/usr/bin/env python
+# coding: utf-8
+
+import argparse
 import os.path
 
+from torch.autograd import Variable
+import torch.onnx
 
-# input_names = ["actual_input_1"]
-# output_names = ["output1"]
-# dynamic_axes = dict(
-#     zip(input_names, [{0: 'batch_size'} for i in range(len(input_names))]))
+from BCNN import BCNN
 
-# pretrained_model \
-#     = "/home/kosuke/catkin_ws_autoware/src/autoware_perception/lidar_apollo_cnn_seg_detect/train_baiducnn/pytorch/checkpoints/bcnn_bestmodel_all_0125.pt"
-pretrained_model \
-    = "/home/kosuke/train_baiducnn/scripts/pytorch/checkpoints/mini_instance.pt"
-bcnn_model = BCNN()
-bcnn_model.load_state_dict(torch.load(pretrained_model))
-x = Variable(torch.randn(1, 8, 640, 640))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--pretrained_model', '-p', type=str,
+                        help='Pretrained model',
+                        default='checkpoints/mini_instance.pt')
+    parser.add_argument('--width', type=int,
+                        help='feature map width',
+                        default=640)
+    parser.add_argument('--width', type=int,
+                        help='feature map width',
+                        default=640)
+    parser.add_argument('--channel', type=int,
+                        help='feature map channel',
+                        default=8)
+    args = parser.parse_args()
 
-torch.onnx.export(bcnn_model, x, os.path.splitext(
-    pretrained_model)[0] + '.onnx', verbose=True)
+    bcnn_model = BCNN()
+    bcnn_model.load_state_dict(torch.load(args.pretrained_model))
+    x = Variable(torch.randn(1, args.channel, args.width, args.height))
 
-# torch.onnx.export(
-#     bcnn_model, x, os.path.splitext(pretrained_model)[0] + '.onnx',
-#     verbose=True,
-#     input_names=input_names, output_names=output_names,
-#     dynamic_axes=dynamic_axes)
+    torch.onnx.export(bcnn_model, x, os.path.splitext(
+        args.pretrained_model)[0] + '.onnx', verbose=True)
