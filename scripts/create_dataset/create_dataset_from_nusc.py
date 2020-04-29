@@ -51,7 +51,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
     if width == height:
         size = width
     else:
-        raise Exception('Currently only supported if width and height are equal')
+        raise Exception(
+            'Currently only supported if width and height are equal')
 
     grid_length = 2. * grid_range / size
 

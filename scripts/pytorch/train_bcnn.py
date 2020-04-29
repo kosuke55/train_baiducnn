@@ -241,7 +241,7 @@ def train(data_path, max_epoch, pretrained_model,
         time_str = "Time %02d:%02d:%02d" % (h, m, s)
         prev_time = cur_time
 
-        if np.mod(epo, 25) == 0:
+        if np.mod(epo, 1) == 0:
             torch.save(bcnn_model.state_dict(),
                        'checkpoints/bcnn_latestmodel_' + now + '.pt')
         print('epoch train loss = %f, epoch test loss = %f, best_loss = %f, %s'
