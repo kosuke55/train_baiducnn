@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -70,10 +73,6 @@ class BCNN(nn.Module):
         self.deconv1_1 = nn.ConvTranspose2d(
             96, 48, kernel_size=3, stride=1, padding=1)
 
-        # only confidence
-        # self.deconv0 = nn.ConvTranspose2d(
-        #     48, 1, kernel_size=4, stride=2, padding=1)
-
         self.deconv0 = nn.ConvTranspose2d(
             48, n_class + 6, kernel_size=4, stride=2, padding=1)
 
@@ -121,21 +120,10 @@ class BCNN(nn.Module):
 
         deconv0 = self.deconv0(deconv1_1)
 
-        # only confidence
-        # output = torch.sigmoid(deconv0)
-
-        # confidence and class
-        confidence = torch.sigmoid(deconv0[:, 0:1, :, :])
-        # use 5 class, ignore 6th unknown label.
-        pred_class = F.softmax(deconv0[:, 1:6, :, :])
-        output = torch.cat(
-            [confidence, pred_class], dim=1)
-
-        # all
         confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
         pred_class = F.softmax(deconv0[:, 4:10, :, :])
         output = torch.cat(
-            [deconv0[:, 0:3, ...], confidence, pred_class, deconv0[:, 10:, ...]], dim=1)
+            [deconv0[:, 0:3, ...], confidence,
+             pred_class, deconv0[:, 10:, ...]], dim=1)
 
         return output
-        # return deconv0
