@@ -9,8 +9,10 @@ import os.path
 # dynamic_axes = dict(
 #     zip(input_names, [{0: 'batch_size'} for i in range(len(input_names))]))
 
+# pretrained_model \
+#     = "/home/kosuke/catkin_ws_autoware/src/autoware_perception/lidar_apollo_cnn_seg_detect/train_baiducnn/pytorch/checkpoints/bcnn_bestmodel_all_0125.pt"
 pretrained_model \
-    = "/home/kosuke/catkin_ws_autoware/src/autoware_perception/lidar_apollo_cnn_seg_detect/train_baiducnn/pytorch/checkpoints/bcnn_bestmodel_all_0125.pt"
+    = "/home/kosuke/train_baiducnn/scripts/pytorch/checkpoints/mini_instance.pt"
 bcnn_model = BCNN()
 bcnn_model.load_state_dict(torch.load(pretrained_model))
 x = Variable(torch.randn(1, 8, 640, 640))

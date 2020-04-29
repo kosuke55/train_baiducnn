@@ -125,10 +125,17 @@ class BCNN(nn.Module):
         # output = torch.sigmoid(deconv0)
 
         # confidence and class
-        confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
+        confidence = torch.sigmoid(deconv0[:, 0:1, :, :])
         # use 5 class, ignore 6th unknown label.
-        pred_class = F.softmax(deconv0[:, 4:9, :, :])
+        pred_class = F.softmax(deconv0[:, 1:6, :, :])
         output = torch.cat(
             [confidence, pred_class], dim=1)
 
+        # all
+        confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
+        pred_class = F.softmax(deconv0[:, 4:10, :, :])
+        output = torch.cat(
+            [deconv0[:, 0:3, ...], confidence, pred_class, deconv0[:, 10:, ...]], dim=1)
+
         return output
+        # return deconv0
