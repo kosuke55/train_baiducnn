@@ -27,7 +27,7 @@ cd ~/train_baiducnn/scripts/pytorch
 python train_bcnn.py --data_path <dir to save created dataset>  
 ```
 
-4) After training, it can be converted to onnx by [pytorch2onnx.py](scripts/pytorch/pytorch2onnx.py) and converted to engine by [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt).  
+4) Trained model can be converted to onnx by [pytorch2onnx.py](scripts/pytorch/pytorch2onnx.py) and converted to engine by [onnx-tensorrt](https://github.com/onnx/onnx-tensorrt).  
 
 ```
 cd ~/train_baiducnn/scripts/pytorch  
