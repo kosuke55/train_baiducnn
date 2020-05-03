@@ -30,10 +30,10 @@ class BcnnLoss(Module):
 
         loss = category_loss + confidence_loss + \
             class_loss + instance_loss + height_loss
-        print("category_loss", category_loss)
-        print("confidence_loss", confidence_loss)
-        print("class_loss", class_loss)
-        print("instace_loss ", instance_loss)
-        print("height_loss ", height_loss)
+        print("category_loss", float(category_loss))
+        print("confidence_loss", float(confidence_loss))
+        print("class_loss", float(class_loss))
+        print("instace_loss ", float(instance_loss))
+        print("height_loss ", float(height_loss))
 
         return loss

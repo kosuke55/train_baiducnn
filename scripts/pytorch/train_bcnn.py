@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import argparse
+import os
 
 import numpy as np
 import torch
@@ -16,16 +17,32 @@ from NuscData import load_dataset
 
 def train(data_path, max_epoch, pretrained_model,
           train_data_num, test_data_num,
-          width=640, height=640):
+          width, height, use_constant_feature, use_intensity_feature):
+
     train_dataloader, test_dataloader = load_dataset(data_path)
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
     vis_interval = 1
 
+    if use_constant_feature and use_intensity_feature:
+        in_channels = 8
+        non_empty_channle = 7
+    elif use_constant_feature or use_intensity_feature:
+        in_channels = 6
+        non_empty_channle = 5
+    else:
+        in_channels = 4
+        non_empty_channle = 3
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    bcnn_model = BCNN(in_channels=8, n_class=6).to(device)
-    bcnn_model.load_state_dict(torch.load(pretrained_model))
+    bcnn_model = BCNN(in_channels=in_channels, n_class=6).to(device)
+    if os.path.exists(pretrained_model):
+        print('Use pretrained model')
+        bcnn_model.load_state_dict(torch.load(pretrained_model))
+    else:
+        print('Not found ', pretrained_model)
+
     bcnn_model.eval()
     save_model_interval = 1
 
@@ -120,8 +137,10 @@ def train(data_path, max_epoch, pretrained_model,
 
             out_feature_gt_img \
                 = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+
             in_feature_img \
-                = in_feature[:, 7, ...].cpu().detach().numpy().copy()
+                = in_feature[
+                    :, non_empty_channle, ...].cpu().detach().numpy().copy()
 
             if np.mod(index, vis_interval) == 0:
                 print('epoch {}, {}/{},train loss is {}'.format(
@@ -264,23 +283,39 @@ if __name__ == "__main__":
 
     parser.add_argument('--data_path', '-dp', type=str,
                         help='Training data path',
-                        default='/media/kosuke/HD-PNFU3/0413/nusc/mini-0421/')
+                        default='/media/kosuke/SANDISK/nusc/mini-6channel/')
     parser.add_argument('--max_epoch', '-me', type=int,
                         help='max epoch',
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model',
-                        default='checkpoints/mini_instance.pt')
+                        default='checkpoints/mini_instance_.pt')
     parser.add_argument('--train_data_num', '-tr', type=int,
                         help='How much data to use for training',
                         default=1000000)
     parser.add_argument('--test_data_num', '-te', type=int,
                         help='How much data to use for testing',
                         default=1000000)
+    parser.add_argument('--width', type=int,
+                        help='feature map width',
+                        default=640)
+    parser.add_argument('--height', type=int,
+                        help='feature map height',
+                        default=640)
+    parser.add_argument('--use_constant_feature', type=str,
+                        help='Whether to use constant feature',
+                        default=False)
+    parser.add_argument('--use_intensity_feature', type=str,
+                        help='Whether to use intensity feature',
+                        default=True)
 
     args = parser.parse_args()
     train(data_path=args.data_path,
           max_epoch=args.max_epoch,
           pretrained_model=args.pretrained_model,
           train_data_num=args.train_data_num,
-          test_data_num=args.test_data_num)
+          test_data_num=args.test_data_num,
+          width=args.width,
+          height=args.height,
+          use_constant_feature=args.use_constant_feature,
+          use_intensity_feature=args.use_intensity_feature)

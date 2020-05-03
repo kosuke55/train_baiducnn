@@ -174,10 +174,10 @@ if __name__ == '__main__':
 
     parser.add_argument('--dataroot', '-dr', type=str,
                         help='Nuscenes dataroot path',
-                        default='/media/kosuke/HD-PNFU3/0413/nusc/v1.0-mini')
+                        default='/media/kosuke/SANDISK/v1.0-mini')
     parser.add_argument('--save_dir', '-sd', type=str,
                         help='Dataset save directory',
-                        default='/media/kosuke/HD-PNFU3/0413/nusc/mini-640')
+                        default='/media/kosuke/SANDISK/nusc/mini-6channel')
     parser.add_argument('--width', type=int,
                         help='feature map width',
                         default=640)
