@@ -71,7 +71,6 @@ def train(data_path, max_epoch, pretrained_model,
             out_feature_gt_np = out_feature_gt.detach().numpy().copy()
             pos_weight = out_feature_gt.detach().numpy().copy()
             pos_weight = pos_weight[:, 3, ...]
-
             zeroidx = np.where(pos_weight == 0)
             nonzeroidx = np.where(pos_weight != 0)
             pos_weight[zeroidx] = 0.1
@@ -175,8 +174,15 @@ def train(data_path, max_epoch, pretrained_model,
         bcnn_model.eval()
         with torch.no_grad():
             for index, (in_feature, out_feature_gt) in enumerate(test_dataloader):
-
                 out_feature_gt_np = out_feature_gt.detach().numpy().copy()  # HWC
+                pos_weight = out_feature_gt.detach().numpy().copy()
+                pos_weight = pos_weight[:, 3, ...]
+                zeroidx = np.where(pos_weight == 0)
+                nonzeroidx = np.where(pos_weight != 0)
+                pos_weight[zeroidx] = 0.1
+                pos_weight[nonzeroidx] = 1.
+                pos_weight = torch.from_numpy(pos_weight)
+                pos_weight = pos_weight.to(device)
                 in_feature = in_feature.to(device)
                 out_feature_gt = out_feature_gt.to(device)
 
