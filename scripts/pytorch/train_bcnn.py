@@ -87,9 +87,20 @@ def train(data_path, max_epoch, pretrained_model,
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
-            loss = criterion(output, out_feature_gt, pos_weight)
+            # loss = criterion(output, out_feature_gt, pos_weight)
+            category_loss, confidence_loss, class_loss, instance_loss, height_loss\
+                = criterion(output, out_feature_gt, pos_weight)
+            if float(confidence_loss) > 500:
+                loss = category_loss + confidence_loss + \
+                    class_loss * 0.001 + (instance_loss + height_loss) * 0.1
+            else:
+                loss = category_loss + confidence_loss + \
+                    class_loss + instance_loss + height_loss
             loss.backward()
-            iter_loss = loss.item()
+
+            loss_for_record = category_loss + confidence_loss + \
+                              class_loss + instance_loss + height_loss
+            iter_loss = loss_for_record.item()
             train_loss += iter_loss
             optimizer.step()
 
@@ -192,8 +203,19 @@ def train(data_path, max_epoch, pretrained_model,
                 confidence = output[:, 3, :, :]
                 pred_class = output[:, 4:10, :, :]
 
-                loss = criterion(output, out_feature_gt, pos_weight)
-                iter_loss = loss.item()
+                # loss = criterion(output, out_feature_gt, pos_weight)
+                category_loss, confidence_loss, class_loss, instance_loss, height_loss\
+                    = criterion(output, out_feature_gt, pos_weight)
+                if float(confidence_loss) > 500:
+                    loss = category_loss + confidence_loss + \
+                        class_loss * 0.001 + (instance_loss + height_loss) * 0.1
+                else:
+                    loss = category_loss + confidence_loss + \
+                        class_loss + instance_loss + height_loss
+
+                loss_for_record = category_loss + confidence_loss + \
+                                  class_loss + instance_loss + height_loss
+                iter_loss = loss_for_record.item()
                 test_loss += iter_loss
 
                 confidence_np = confidence.cpu().detach().numpy().copy()
