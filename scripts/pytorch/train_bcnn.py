@@ -232,10 +232,14 @@ def train(data_path, max_epoch, pretrained_model,
                 label_img[human_idx] = [0, 255, 255]
                 label_img = label_img.transpose(2, 0, 1)
 
-                # out_feature_gt_img = out_feature_gt[..., 0].cpu().detach().numpy().copy()
                 out_feature_gt_img = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
 
                 if np.mod(index, vis_interval) == 0:
+                    print('epoch {}, {}/{},test loss is {}'.format(
+                        epo,
+                        index,
+                        len(test_dataloader),
+                        iter_loss))
                     vis.images([out_feature_gt_img, confidence_img],
                                win='test_confidencena',
                                opts=dict(
