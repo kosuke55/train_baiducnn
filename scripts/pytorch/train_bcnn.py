@@ -50,9 +50,9 @@ def train(data_path, max_epoch, pretrained_model,
     for epo in range(max_epoch):
         train_loss = 0
         bcnn_model.train()
-        for index, (nusc, nusc_msk) in enumerate(train_dataloader):
-            nusc_msk_np = nusc_msk.detach().numpy().copy()
-            pos_weight = nusc_msk.detach().numpy().copy()
+        for index, (in_feature, out_feature_gt) in enumerate(train_dataloader):
+            out_feature_gt_np = out_feature_gt.detach().numpy().copy()
+            pos_weight = out_feature_gt.detach().numpy().copy()
             pos_weight = pos_weight[:, 3, ...]
 
             zeroidx = np.where(pos_weight == 0)
@@ -62,16 +62,16 @@ def train(data_path, max_epoch, pretrained_model,
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
             criterion = BcnnLoss().to(device)
-            nusc = nusc.to(device)
-            nusc_msk = nusc_msk.to(device)
+            in_feature = in_feature.to(device)
+            out_feature_gt = out_feature_gt.to(device)
 
             optimizer.zero_grad()
-            output = bcnn_model(nusc)
+            output = bcnn_model(in_feature)
 
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
-            loss = criterion(output, nusc_msk, pos_weight)
+            loss = criterion(output, out_feature_gt, pos_weight)
             loss.backward()
             iter_loss = loss.item()
             train_loss += iter_loss
@@ -103,8 +103,8 @@ def train(data_path, max_epoch, pretrained_model,
             pred_class_img = pred_class_img.transpose(2, 0, 1)
 
             # draw label image
-            nusc_msk_np = nusc_msk_np.transpose(0, 2, 3, 1)
-            true_label_np = nusc_msk_np[..., 4:10]
+            out_feature_gt_np = out_feature_gt_np.transpose(0, 2, 3, 1)
+            true_label_np = out_feature_gt_np[..., 4:10]
             true_label_np = np.argmax(true_label_np, axis=3)
             true_label_np = true_label_np.transpose(1, 2, 0)
             car_idx = np.where(true_label_np[:, :, 0] == 1)
@@ -118,8 +118,10 @@ def train(data_path, max_epoch, pretrained_model,
             label_img[human_idx] = [0, 255, 255]
             label_img = label_img.transpose(2, 0, 1)
 
-            nusc_msk_img = nusc_msk[:, 0, ...].cpu().detach().numpy().copy()
-            nusc_img = nusc[:, 7, ...].cpu().detach().numpy().copy()
+            out_feature_gt_img \
+                = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+            in_feature_img \
+                = in_feature[:, 7, ...].cpu().detach().numpy().copy()
 
             if np.mod(index, vis_interval) == 0:
                 print('epoch {}, {}/{},train loss is {}'.format(
@@ -128,11 +130,11 @@ def train(data_path, max_epoch, pretrained_model,
                     len(train_dataloader),
                     iter_loss))
 
-                vis.images(nusc_img,
-                           win='nusc_input',
+                vis.images(in_feature_img,
+                           win='in_feature',
                            opts=dict(
-                               title='nusc input'))
-                vis.images([nusc_msk_img, confidence_img],
+                               title='in_feature'))
+                vis.images([out_feature_gt_img, confidence_img],
                            win='train_confidencena',
                            opts=dict(
                                title='train confidence(GT, Pred)'))
@@ -153,19 +155,19 @@ def train(data_path, max_epoch, pretrained_model,
         test_loss = 0
         bcnn_model.eval()
         with torch.no_grad():
-            for index, (nusc, nusc_msk) in enumerate(test_dataloader):
+            for index, (in_feature, out_feature_gt) in enumerate(test_dataloader):
 
-                nusc_msk_np = nusc_msk.detach().numpy().copy()  # HWC
-                nusc = nusc.to(device)
-                nusc_msk = nusc_msk.to(device)
+                out_feature_gt_np = out_feature_gt.detach().numpy().copy()  # HWC
+                in_feature = in_feature.to(device)
+                out_feature_gt = out_feature_gt.to(device)
 
                 optimizer.zero_grad()
-                output = bcnn_model(nusc)
+                output = bcnn_model(in_feature)
 
                 confidence = output[:, 3, :, :]
                 pred_class = output[:, 4:10, :, :]
 
-                loss = criterion(output, nusc_msk, pos_weight)
+                loss = criterion(output, out_feature_gt, pos_weight)
                 iter_loss = loss.item()
                 test_loss += iter_loss
 
@@ -196,8 +198,8 @@ def train(data_path, max_epoch, pretrained_model,
                 pred_class_img = pred_class_img.transpose(2, 0, 1)
 
                 # draw label image
-                nusc_msk_np = nusc_msk_np.transpose(0, 2, 3, 1)
-                true_label_np = nusc_msk_np[..., 4:10]
+                out_feature_gt_np = out_feature_gt_np.transpose(0, 2, 3, 1)
+                true_label_np = out_feature_gt_np[..., 4:10]
                 true_label_np = np.argmax(true_label_np, axis=3)
                 true_label_np = true_label_np.transpose(1, 2, 0)
                 car_idx = np.where(true_label_np[:, :, 0] == 1)
@@ -211,11 +213,11 @@ def train(data_path, max_epoch, pretrained_model,
                 label_img[human_idx] = [0, 255, 255]
                 label_img = label_img.transpose(2, 0, 1)
 
-                # nusc_msk_img = nusc_msk[..., 0].cpu().detach().numpy().copy()
-                nusc_msk_img = nusc_msk[:, 0, ...].cpu().detach().numpy().copy()
+                # out_feature_gt_img = out_feature_gt[..., 0].cpu().detach().numpy().copy()
+                out_feature_gt_img = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
 
                 if np.mod(index, vis_interval) == 0:
-                    vis.images([nusc_msk_img, confidence_img],
+                    vis.images([out_feature_gt_img, confidence_img],
                                win='test_confidencena',
                                opts=dict(
                                    title='test confidence(GT, Pred)'))
