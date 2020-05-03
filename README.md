@@ -19,7 +19,7 @@ cd ~/train_baiducnn/scripts/create_dataset
 python create_dataset_from_nusc.py  --dataroot <downloaded nuscenes path> --save_dir <dir to save created dataset> --nusc_version <v1.0-mini or v1.0-trainval>  
 ```
 
-3 Execute start\_server.sh and access from a web browser. Then you can train with [train_bcnn.py](scripts/pytorch/train_bcnn.py).  
+3) Execute start\_server.sh and access from a web browser. Then you can train with [train_bcnn.py](scripts/pytorch/train_bcnn.py).  
 
 ```
 cd ~/train_baiducnn/scripts/pytorch  
