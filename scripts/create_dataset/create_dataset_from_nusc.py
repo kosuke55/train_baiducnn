@@ -11,30 +11,12 @@ for path in sys.path:
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import numba
 import numpy as np
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
 
 import feature_generator as fg
-
-
-def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
-    p1 = box2d[0]
-    p_x = box2d[1]
-    p_y = box2d[3]
-
-    i = p_x - p1
-    j = p_y - p1
-    v = points - p1
-
-    iv = np.dot(i, v)
-    jv = np.dot(j, v)
-
-    mask_x = np.logical_and(0 <= iv, iv <= np.dot(i, i))
-    mask_y = np.logical_and(0 <= jv, jv <= np.dot(j, j))
-    mask = np.logical_and(mask_x, mask_y)
-
-    return mask
 
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
@@ -60,13 +42,17 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
     label_half_length = 10
 
     data_id = 0
+    grid_ticks = np.arange(
+        -grid_range, grid_range + grid_length, grid_length)
+    grid_centers \
+        = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
+
     for my_scene in nusc.scene:
         first_sample_token = my_scene['first_sample_token']
         token = first_sample_token
 
         while(token != ''):
             print('--- {} '.format(data_id) + token + ' ---')
-            out_feature = np.zeros((size, size, 7), dtype=np.float16)
             my_sample = nusc.get('sample', token)
             sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
             sample_rec = nusc.get('sample', sd_record['sample_token'])
@@ -76,11 +62,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 nusc, sample_rec, chan, ref_chan, nsweeps=10)
             _, boxes, _ = nusc.get_sample_data(
                 sd_record['token'], box_vis_level=0)
-            points = pc.points[:3, :]
 
-            grid_ticks = np.arange(
-                -grid_range, grid_range + grid_length, grid_length)
-
+            out_feature = np.zeros((size, size, 7), dtype=np.float32)
             for box_idx, box in enumerate(boxes):
                 label = 0
                 if box.name.split('.')[0] == 'vehicle':
@@ -98,58 +81,15 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                     continue
 
                 height_pt = np.linalg.norm(box.corners().T[0] - box.corners().T[3])
-
                 corners2d = box.corners()[:2, :]
                 box2d = corners2d.T[[2, 3, 7, 6]]
-                # find search area
-                box2d_left = box2d[:, 0].min()
-                box2d_right = box2d[:, 0].max()
-                box2d_top = box2d[:, 1].max()
-                box2d_bottom = box2d[:, 1].min()
-
-                grid_centers \
-                    = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
-
-                search_area_left_idx = np.abs(
-                    grid_centers - box2d_left).argmin() - 1
-                search_area_right_idx = np.abs(
-                    grid_centers - box2d_right).argmin() + 1
-                search_area_bottom_idx = np.abs(
-                    grid_centers - box2d_bottom).argmin() - 1
-                search_area_top_idx = np.abs(
-                    grid_centers - box2d_top).argmin() + 1
 
                 box2d_center = box2d.mean(axis=0)
-                box_fill_area = np.array([box2d[:, 0], box2d[:, 1]])
+                generate_out_feature(width, height, size, grid_centers,
+                                     box2d, box2d_center, height_pt,
+                                     label, label_half_length, out_feature)
 
-                c = patches.Circle(xy=(box2d_center[0], box2d_center[1]),
-                                   radius=0.1, fc='b', ec='b', fill=False)
-
-                # start from lefght bottom, go right.
-                for i in range(search_area_left_idx, search_area_right_idx):
-                    for j in range(
-                            search_area_bottom_idx, search_area_top_idx):
-                        # grid_center is in meter coords
-                        grid_center = np.array(
-                            [grid_centers[i], grid_centers[j]])
-                        if points_in_box2d(box2d, grid_center):
-                            out_feature[i, j, 0] = 1.  # category_pt
-                            instance_pt = box2d_center - grid_center
-                            out_feature[i, j, 1] = instance_pt[0]
-                            out_feature[i, j, 2] = instance_pt[1]
-                            out_feature[i, j, 3] = 1.  # confidence_pt
-                            # out_feature[i, j, 4] = label  # classify_pt
-                            if i - label_half_length >= 0 and \
-                               i + label_half_length < width and \
-                               j - label_half_length >= 0 and \
-                               j + label_half_length < height:
-                                out_feature[
-                                    i - label_half_length:i + label_half_length,
-                                    j - label_half_length:j + label_half_length,
-                                    4] = label  # classify_pt
-                            out_feature[i, j, 5] = 0.  # heading_pt (unused)
-                            out_feature[i, j, 6] = height_pt  # height_pt
-
+            out_feature = out_feature.astype(np.float16)
             feature_generator = fg.Feature_generator(
                 grid_range, width, height,
                 use_constant_feature, use_intensity_feature)
@@ -175,6 +115,62 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             data_id += 1
             if data_id == end_id:
                 return
+
+
+@numba.jit(nopython=True)
+def generate_out_feature(
+        width, height, size, grid_centers, box2d, box2d_center,
+        height_pt, label, label_half_length, out_feature):
+    box2d_left = box2d[:, 0].min()
+    box2d_right = box2d[:, 0].max()
+    box2d_top = box2d[:, 1].max()
+    box2d_bottom = box2d[:, 1].min()
+
+    search_area_left_idx = np.abs(
+        grid_centers - box2d_left).argmin() - 1
+    search_area_right_idx = np.abs(
+        grid_centers - box2d_right).argmin() + 1
+    search_area_bottom_idx = np.abs(
+        grid_centers - box2d_bottom).argmin() - 1
+    search_area_top_idx = np.abs(
+        grid_centers - box2d_top).argmin() + 1
+
+    for i in range(search_area_left_idx, search_area_right_idx):
+        for j in range(
+                search_area_bottom_idx, search_area_top_idx):
+            grid_center = np.array(
+                [grid_centers[i], grid_centers[j]])
+
+            p1 = box2d[0]
+            p_x = box2d[1]
+            p_y = box2d[3]
+            pi = p_x - p1
+            pj = p_y - p1
+            v = grid_center - p1
+            iv = np.dot(pi, v)
+            jv = np.dot(pj, v)
+            mask_x = np.logical_and(0 <= iv, iv <= np.dot(pi, pi))
+            mask_y = np.logical_and(0 <= jv, jv <= np.dot(pj, pj))
+            mask = np.logical_and(mask_x, mask_y)
+
+            if mask:
+                out_feature[i, j, 0] = 1.  # category_pt
+                instance_pt = box2d_center - grid_center
+                out_feature[i, j, 1] = instance_pt[0]
+                out_feature[i, j, 2] = instance_pt[1]
+                out_feature[i, j, 3] = 1.  # confidence_pt
+                # out_feature[i, j, 4] = label  # classify_pt
+                if i - label_half_length >= 0 and \
+                   i + label_half_length < width and \
+                   j - label_half_length >= 0 and \
+                   j + label_half_length < height:
+                    out_feature[
+                        i - label_half_length:i + label_half_length,
+                        j - label_half_length:j + label_half_length,
+                        4] = label  # classify_pt
+                out_feature[i, j, 5] = 0.  # heading_pt (unused)
+                out_feature[i, j, 6] = height_pt  # height_pt
+    return out_feature
 
 
 if __name__ == '__main__':
