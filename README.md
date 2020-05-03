@@ -1,6 +1,8 @@
 # Train lidar\_apollo\_instance\_segmentation CNN  
 
-## Code Support  
+Train lidar\_apollo\_instance\_segmentation CNN with Nuscenes.  
+
+## Getting Started  
 Only supports python3.  
 
 1. Download [nuscenes](https://www.nuscenes.org/) and set path to [nuscenes API](https://github.com/nutonomy/nuscenes-devkit/tree/master/python-sdk/nuscenes).  
