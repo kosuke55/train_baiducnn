@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--data_path', '-dp', type=str,
                         help='Training data path',
-                        default='/media/kosuke/SANDISK/nusc/mini-6channel/')
+                        default='/media/kosuke/SANDISK/nusc/mini-6c-672/')
     parser.add_argument('--max_epoch', '-me', type=int,
                         help='max epoch',
                         default=1000000)
@@ -298,10 +298,10 @@ if __name__ == "__main__":
                         default=1000000)
     parser.add_argument('--width', type=int,
                         help='feature map width',
-                        default=640)
+                        default=672)
     parser.add_argument('--height', type=int,
                         help='feature map height',
-                        default=640)
+                        default=672)
     parser.add_argument('--use_constant_feature', type=str,
                         help='Whether to use constant feature',
                         default=False)
