@@ -150,9 +150,9 @@ def train(data_path, max_epoch, pretrained_model,
                     iter_loss))
 
                 vis.images(in_feature_img,
-                           win='in_feature',
+                           win='train in_feature',
                            opts=dict(
-                               title='in_feature'))
+                               title='train in_feature'))
                 vis.images([out_feature_gt_img, confidence_img],
                            win='train_confidencena',
                            opts=dict(
@@ -232,7 +232,12 @@ def train(data_path, max_epoch, pretrained_model,
                 label_img[human_idx] = [0, 255, 255]
                 label_img = label_img.transpose(2, 0, 1)
 
-                out_feature_gt_img = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+                out_feature_gt_img \
+                    = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+
+                in_feature_img \
+                    = in_feature[:, non_empty_channle, ...].cpu(
+                    ).detach().numpy().copy()
 
                 if np.mod(index, vis_interval) == 0:
                     print('epoch {}, {}/{},test loss is {}'.format(
@@ -240,6 +245,10 @@ def train(data_path, max_epoch, pretrained_model,
                         index,
                         len(test_dataloader),
                         iter_loss))
+                    vis.images(in_feature_img,
+                               win='test in_feature',
+                               opts=dict(
+                                   title='test in_feature'))
                     vis.images([out_feature_gt_img, confidence_img],
                                win='test_confidencena',
                                opts=dict(
@@ -252,7 +261,10 @@ def train(data_path, max_epoch, pretrained_model,
                     print("Finish test {} data".format(index))
                     break
 
-            avg_test_loss = test_loss / len(test_dataloader)
+            if len(test_dataloader) > 0:
+                avg_test_loss = test_loss / len(test_dataloader)
+            else:
+                avg_test_loss = test_loss
 
         vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
                  name='avg_train_loss', update='append')
