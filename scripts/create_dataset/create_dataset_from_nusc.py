@@ -170,7 +170,6 @@ def generate_out_feature(
                         4] = label  # classify_pt
                 out_feature[i, j, 5] = 0.  # heading_pt (unused)
                 out_feature[i, j, 6] = height_pt  # height_pt
-    return out_feature
 
 
 if __name__ == '__main__':
