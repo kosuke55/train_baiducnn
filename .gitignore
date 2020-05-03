@@ -2,13 +2,5 @@
 *pyc*
 *.python-version*
 *.markdown-preview.html*
-ignore
-images/3d_obstacle_perception
-data
-pytorch/checkpoints
-script/ignore
-script/logs
-script/DIGITS
-script/trash
-script/traindata
-script/caffe
+ignore/
+scripts/pytorch/checkpoints
