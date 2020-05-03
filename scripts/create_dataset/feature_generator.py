@@ -16,7 +16,8 @@ def Pixel2pc(in_pixel, in_size, out_range):
 
 
 class Feature_generator():
-    def __init__(self, grid_range, width, height):
+    def __init__(self, grid_range, width, height,
+                 use_constant_feature, use_intensity_feature):
         self.range = grid_range
         self.width = int(width)
         self.height = int(height)
@@ -28,33 +29,52 @@ class Feature_generator():
         for i in range(len(self.log_table)):
             self.log_table[i] = np.log1p(i)
 
-        self.max_height_data = 0
-        self.mean_height_data = 1
-        self.count_data = 2
-        self.direction_data = 3
-        self.top_intensity_data = 4
-        self.mean_intensity_data = 5
-        self.distance_data = 6
-        self.nonempty_data = 7
-        self.feature = np.zeros((self.siz, 8), dtype=np.float16)
+        if use_constant_feature and use_intensity_feature:
+            self.max_height_data = 0
+            self.mean_height_data = 1
+            self.count_data = 2
+            self.direction_data = 3
+            self.top_intensity_data = 4
+            self.mean_intensity_data = 5
+            self.distance_data = 6
+            self.nonempty_data = 7
+            self.feature = np.zeros((self.siz, 8), dtype=np.float16)
 
-        # self.max_height_data = 0
-        # self.mean_height_data = 1
-        # self.count_data = 2
-        # self.top_intensity_data = 3
-        # self.mean_intensity_data = 4
-        # self.nonempty_data = 5
-        # self.feature = np.zeros((self.siz, 6), dtype=np.float16)
+        elif use_constant_feature:
+            self.max_height_data = 0
+            self.mean_height_data = 1
+            self.count_data = 2
+            self.direction_data = 3
+            self.distance_data = 4
+            self.nonempty_data = 5
+            self.feature = np.zeros((self.siz, 6), dtype=np.float16)
 
-        for row in range(self.height):
-            for col in range(self.width):
-                idx = row * self.width + col
-                center_x = Pixel2pc(row, self.height, self.range)
-                center_y = Pixel2pc(col, self.width, self.range)
-                self.feature[idx, self.direction_data] \
-                    = np.arctan2(center_y, center_x) / (2.0 * np.pi)
-                self.feature[idx, self.distance_data] \
-                    = np.hypot(center_x, center_y) / 60. - 0.5
+        elif use_intensity_feature:
+            self.max_height_data = 0
+            self.mean_height_data = 1
+            self.count_data = 2
+            self.top_intensity_data = 3
+            self.mean_intensity_data = 4
+            self.nonempty_data = 5
+            self.feature = np.zeros((self.siz, 6), dtype=np.float16)
+
+        else:
+            self.max_height_data = 0
+            self.mean_height_data = 1
+            self.count_data = 2
+            self.nonempty_data = 3
+            self.feature = np.zeros((self.siz, 4), dtype=np.float16)
+
+        if use_constant_feature:
+            for row in range(self.height):
+                for col in range(self.width):
+                    idx = row * self.width + col
+                    center_x = Pixel2pc(row, self.height, self.range)
+                    center_y = Pixel2pc(col, self.width, self.range)
+                    self.feature[idx, self.direction_data] \
+                        = np.arctan2(center_y, center_x) / (2.0 * np.pi)
+                    self.feature[idx, self.distance_data] \
+                        = np.hypot(center_x, center_y) / 60. - 0.5
 
     def logCount(self, count):
         if count < len(self.log_table):

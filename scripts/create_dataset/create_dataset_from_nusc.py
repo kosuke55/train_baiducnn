@@ -38,7 +38,9 @@ def points_in_box2d(box2d: np.ndarray, points: np.ndarray):
 
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
-                   nusc_version='v1.0-mini', end_id=None):
+                   nusc_version='v1.0-mini',
+                   use_constant_feature=True, use_intensity_feature=True,
+                   end_id=None):
 
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
@@ -139,10 +141,17 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                             out_feature[i, j, 5] = 0.  # heading_pt (unused)
                             out_feature[i, j, 6] = height_pt  # height_pt
 
-            feature_generator = fg.Feature_generator(grid_range, width, height)
+            feature_generator = fg.Feature_generator(
+                grid_range, width, height,
+                use_constant_feature, use_intensity_feature)
             feature_generator.generate(pc.points.T)
             in_feature = feature_generator.feature
-            in_feature = in_feature.reshape(size, size, 8)
+            if use_constant_feature and use_intensity_feature:
+                in_feature = in_feature.reshape(size, size, 8)
+            elif use_constant_feature or use_intensity_feature:
+                in_feature = in_feature.reshape(size, size, 6)
+            else:
+                in_feature = in_feature.reshape(size, size, 4)
 
             # instance_pt is flipped due to flip
             out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
@@ -181,6 +190,15 @@ if __name__ == '__main__':
     parser.add_argument('--nusc_version', type=str,
                         help='Nuscenes version. v1.0-mini or v1.0-trainval',
                         default='v1.0-mini')
+    parser.add_argument('--use_constant_feature', type=str,
+                        help='Whether to use constant feature',
+                        default=False)
+    parser.add_argument('--use_intensity_feature', type=str,
+                        help='Whether to use intensity feature',
+                        default=True)
+    parser.add_argument('--end_id', type=int,
+                        help='How many data to generate. If None, all data',
+                        default=None)
 
     args = parser.parse_args()
     create_dataset(dataroot=args.dataroot,
@@ -188,4 +206,7 @@ if __name__ == '__main__':
                    width=args.width,
                    height=args.height,
                    grid_range=args.range,
-                   nusc_version=args.nusc_version, end_id=None)
+                   nusc_version=args.nusc_version,
+                   use_constant_feature=args.use_constant_feature,
+                   use_intensity_feature=args.use_intensity_feature,
+                   end_id=args.end_id)
