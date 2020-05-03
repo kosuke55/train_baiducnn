@@ -54,8 +54,9 @@ class NuscDataset(Dataset):
         out_feature = np.concatenate(
             [out_feature[..., 0:4],
              one_hot_class, out_feature[..., 5:]], 2)
-        out_feature = torch.FloatTensor(out_feature)
+
         if self.transform:
             in_feature = self.transform(in_feature)
+            out_feature = self.transform(out_feature)
 
         return in_feature, out_feature

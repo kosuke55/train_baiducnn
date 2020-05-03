@@ -21,11 +21,13 @@ def train(data_path, max_epoch, pretrained_model,
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
+    vis_interval = 1
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bcnn_model = BCNN(in_channels=8, n_class=6).to(device)
     bcnn_model.load_state_dict(torch.load(pretrained_model))
     bcnn_model.eval()
+    save_model_interval = 1
 
     transfer_learning = False
     if transfer_learning:
@@ -51,7 +53,7 @@ def train(data_path, max_epoch, pretrained_model,
         for index, (nusc, nusc_msk) in enumerate(train_dataloader):
             nusc_msk_np = nusc_msk.detach().numpy().copy()
             pos_weight = nusc_msk.detach().numpy().copy()
-            pos_weight = pos_weight[0, :, :, 3]
+            pos_weight = pos_weight[:, 3, ...]
 
             zeroidx = np.where(pos_weight == 0)
             nonzeroidx = np.where(pos_weight != 0)
@@ -69,8 +71,7 @@ def train(data_path, max_epoch, pretrained_model,
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
-            loss = criterion(
-                output, nusc_msk.transpose(1, 3).transpose(2, 3), pos_weight)
+            loss = criterion(output, nusc_msk, pos_weight)
             loss.backward()
             iter_loss = loss.item()
             train_loss += iter_loss
@@ -102,6 +103,7 @@ def train(data_path, max_epoch, pretrained_model,
             pred_class_img = pred_class_img.transpose(2, 0, 1)
 
             # draw label image
+            nusc_msk_np = nusc_msk_np.transpose(0, 2, 3, 1)
             true_label_np = nusc_msk_np[..., 4:10]
             true_label_np = np.argmax(true_label_np, axis=3)
             true_label_np = true_label_np.transpose(1, 2, 0)
@@ -116,10 +118,10 @@ def train(data_path, max_epoch, pretrained_model,
             label_img[human_idx] = [0, 255, 255]
             label_img = label_img.transpose(2, 0, 1)
 
-            nusc_msk_img = nusc_msk[..., 0].cpu().detach().numpy().copy()
+            nusc_msk_img = nusc_msk[:, 0, ...].cpu().detach().numpy().copy()
             nusc_img = nusc[:, 7, ...].cpu().detach().numpy().copy()
 
-            if np.mod(index, 1) == 0:
+            if np.mod(index, vis_interval) == 0:
                 print('epoch {}, {}/{},train loss is {}'.format(
                     epo,
                     index,
@@ -163,10 +165,7 @@ def train(data_path, max_epoch, pretrained_model,
                 confidence = output[:, 3, :, :]
                 pred_class = output[:, 4:10, :, :]
 
-                loss = criterion(
-                    output, nusc_msk.transpose(1, 3).transpose(2, 3),
-                    pos_weight)
-
+                loss = criterion(output, nusc_msk, pos_weight)
                 iter_loss = loss.item()
                 test_loss += iter_loss
 
@@ -197,6 +196,7 @@ def train(data_path, max_epoch, pretrained_model,
                 pred_class_img = pred_class_img.transpose(2, 0, 1)
 
                 # draw label image
+                nusc_msk_np = nusc_msk_np.transpose(0, 2, 3, 1)
                 true_label_np = nusc_msk_np[..., 4:10]
                 true_label_np = np.argmax(true_label_np, axis=3)
                 true_label_np = true_label_np.transpose(1, 2, 0)
@@ -211,9 +211,10 @@ def train(data_path, max_epoch, pretrained_model,
                 label_img[human_idx] = [0, 255, 255]
                 label_img = label_img.transpose(2, 0, 1)
 
-                nusc_msk_img = nusc_msk[..., 0].cpu().detach().numpy().copy()
+                # nusc_msk_img = nusc_msk[..., 0].cpu().detach().numpy().copy()
+                nusc_msk_img = nusc_msk[:, 0, ...].cpu().detach().numpy().copy()
 
-                if np.mod(index, 25) == 0:
+                if np.mod(index, vis_interval) == 0:
                     vis.images([nusc_msk_img, confidence_img],
                                win='test_confidencena',
                                opts=dict(
@@ -239,7 +240,7 @@ def train(data_path, max_epoch, pretrained_model,
         time_str = "Time %02d:%02d:%02d" % (h, m, s)
         prev_time = cur_time
 
-        if np.mod(epo, 1) == 0:
+        if np.mod(epo, save_model_interval) == 0:
             torch.save(bcnn_model.state_dict(),
                        'checkpoints/bcnn_latestmodel_' + now + '.pt')
         print('epoch train loss = %f, epoch test loss = %f, best_loss = %f, %s'
