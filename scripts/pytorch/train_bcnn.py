@@ -206,12 +206,6 @@ def train(data_path, max_epoch, pretrained_model,
                 # loss = criterion(output, out_feature_gt, pos_weight)
                 category_loss, confidence_loss, class_loss, instance_loss, height_loss\
                     = criterion(output, out_feature_gt, pos_weight)
-                if float(confidence_loss) > 500:
-                    loss = category_loss + confidence_loss + \
-                        class_loss * 0.001 + (instance_loss + height_loss) * 0.1
-                else:
-                    loss = category_loss + confidence_loss + \
-                        class_loss + instance_loss + height_loss
 
                 loss_for_record = category_loss + confidence_loss + \
                                   class_loss + instance_loss + height_loss
