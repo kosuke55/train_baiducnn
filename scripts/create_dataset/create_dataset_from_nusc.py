@@ -57,6 +57,7 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             'Currently only supported if width and height are equal')
 
     grid_length = 2. * grid_range / size
+    label_half_length = 10
 
     data_id = 0
     for my_scene in nusc.scene:
@@ -137,7 +138,15 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                             out_feature[i, j, 1] = instance_pt[0]
                             out_feature[i, j, 2] = instance_pt[1]
                             out_feature[i, j, 3] = 1.  # confidence_pt
-                            out_feature[i, j, 4] = label  # classify_pt
+                            # out_feature[i, j, 4] = label  # classify_pt
+                            if i - label_half_length / 2 >= 0 and \
+                               i + label_half_length / 2 < width and \
+                               j - label_half_length / 2 >= 0 and \
+                               j + label_half_length / 2 < height:
+                                out_feature[
+                                    i - label_half_length:i + label_half_length,
+                                    j - label_half_length:j + label_half_length,
+                                    4] = label  # classify_pt
                             out_feature[i, j, 5] = 0.  # heading_pt (unused)
                             out_feature[i, j, 6] = height_pt  # height_pt
 
