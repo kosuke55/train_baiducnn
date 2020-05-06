@@ -1,5 +1,6 @@
-matplotlib==2.2.3
-numba==0.43.1
+gdow
+matplotlib
+numba
 numpy==1.18.3
 torch==1.4.0
 torchvision==0.5.0
