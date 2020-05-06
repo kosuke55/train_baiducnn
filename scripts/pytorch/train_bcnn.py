@@ -40,7 +40,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
     bcnn_model = BCNN(in_channels=in_channels, n_class=6).to(device)
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
-        bcnn_model.load_state_dict(torch.load(pretrained_model))
+        bcnn_model.load_state_dict(torch.load(pretrained_model), strict=False)
     else:
         print('Not found ', pretrained_model)
         if pretrained_model == 'checkpoints/mini_672_6c.pt':
