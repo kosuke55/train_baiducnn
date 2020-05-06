@@ -89,7 +89,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             class_weight = class_weight[:, 4:5, ...]
             object_idx = np.where(class_weight != 0)
             nonobject_idx = np.where(class_weight == 0)
-            class_weight[object_idx] = 0.
+            class_weight[object_idx] = 0.01 ** 2
             class_weight[nonobject_idx] = 1.
             class_weight = np.concatenate(
                 [class_weight,
@@ -242,7 +242,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = class_weight[:, 4:5, ...]
                 object_idx = np.where(class_weight != 0)
                 nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 0.
+                class_weight[object_idx] = 0.01 ** 2
                 class_weight[nonobject_idx] = 1.
                 class_weight = np.concatenate(
                     [class_weight,
