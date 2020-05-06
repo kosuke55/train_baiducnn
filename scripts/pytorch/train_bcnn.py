@@ -130,8 +130,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
             else:
                 print("loss function 6")
-                loss = category_loss + confidence_loss
-                class_loss * 0.1 + (instance_loss + height_loss) * 0.01
+                loss = category_loss + confidence_loss \
+                       + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
 
             optimizer.zero_grad()
             loss.backward()
