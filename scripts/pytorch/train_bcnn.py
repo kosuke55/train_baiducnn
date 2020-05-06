@@ -16,15 +16,15 @@ from BcnnLoss import BcnnLoss
 from NuscData import load_dataset
 
 
-def train(data_path, max_epoch, pretrained_model,
+def train(data_path, batch_size, max_epoch, pretrained_model,
           train_data_num, test_data_num,
           width, height, use_constant_feature, use_intensity_feature):
 
-    train_dataloader, test_dataloader = load_dataset(data_path)
+    train_dataloader, test_dataloader = load_dataset(data_path, batch_size)
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
-    vis_interval = 10
+    vis_interval = 1
 
     if use_constant_feature and use_intensity_feature:
         in_channels = 8
@@ -78,27 +78,33 @@ def train(data_path, max_epoch, pretrained_model,
             out_feature_gt_np = out_feature_gt.detach().numpy().copy()
             pos_weight = out_feature_gt.detach().numpy().copy()
             pos_weight = pos_weight[:, 3, ...]
-            zeroidx = np.where(pos_weight == 0)
-            nonzeroidx = np.where(pos_weight != 0)
-            pos_weight[zeroidx] = 0.5
-            pos_weight[nonzeroidx] = 1.
+            object_idx = np.where(pos_weight == 0)
+            nonobject_idx = np.where(pos_weight != 0)
+            pos_weight[object_idx] = 0.5
+            pos_weight[nonobject_idx] = 1.
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
 
             class_weight = out_feature_gt.detach().numpy().copy()
             class_weight = class_weight[:, 4:5, ...]
-            class_weight[np.where(class_weight == 0)] = 0
-            class_weight[np.where(class_weight != 0)] = 1.
-            class_weight = pos_weight.to(device)
+            object_idx = np.where(class_weight != 0)
+            nonobject_idx = np.where(class_weight == 0)
+            class_weight[object_idx] = 0.
+            class_weight[nonobject_idx] = 1.
+            class_weight = np.concatenate(
+                [class_weight,
+                 class_weight,
+                 class_weight,
+                 class_weight,
+                 class_weight,
+                 class_weight], axis=1)
+            class_weight = torch.from_numpy(class_weight)
+            class_weight = class_weight.to(device)
 
             criterion = BcnnLoss().to(device)
             in_feature = in_feature.to(device)
             out_feature_gt = out_feature_gt.to(device)
             output = bcnn_model(in_feature)
-
-            category = output[:, 0, :, :]
-            confidence = output[:, 3, :, :]
-            pred_class = output[:, 4:10, :, :]
 
             category_loss, confidence_loss, class_loss, instance_loss, height_loss\
                 = criterion(output, out_feature_gt, pos_weight, class_weight)
@@ -136,6 +142,7 @@ def train(data_path, max_epoch, pretrained_model,
             train_loss += iter_loss
             optimizer.step()
 
+            confidence = output[0, 3:4, :, :]
             confidence_np = confidence.cpu().detach().numpy().copy()
             confidence_np = confidence_np.transpose(1, 2, 0)
             confidence_img = np.zeros((width, height, 1), dtype=np.uint8)
@@ -147,9 +154,10 @@ def train(data_path, max_epoch, pretrained_model,
             confidence_img = confidence_img.transpose(2, 0, 1)
 
             # draw pred class
+            pred_class = output[0, 4:10, :, :]
             pred_class_np = pred_class.cpu().detach().numpy().copy()
-            pred_class_np = np.argmax(pred_class_np, axis=1)
             pred_class_np = pred_class_np.transpose(1, 2, 0)
+            pred_class_np = np.argmax(pred_class_np, axis=2)[..., None]
             car_idx = np.where(pred_class_np[:, :, 0] == 1)
             bus_idx = np.where(pred_class_np[:, :, 0] == 2)
             bike_idx = np.where(pred_class_np[:, :, 0] == 3)
@@ -162,10 +170,9 @@ def train(data_path, max_epoch, pretrained_model,
             pred_class_img = pred_class_img.transpose(2, 0, 1)
 
             # draw label image
-            out_feature_gt_np = out_feature_gt_np.transpose(0, 2, 3, 1)
+            out_feature_gt_np = out_feature_gt_np[0, ...].transpose(1, 2, 0)
             true_label_np = out_feature_gt_np[..., 4:10]
-            true_label_np = np.argmax(true_label_np, axis=3)
-            true_label_np = true_label_np.transpose(1, 2, 0)
+            true_label_np = np.argmax(true_label_np, axis=2)[..., None]
             car_idx = np.where(true_label_np[:, :, 0] == 1)
             bus_idx = np.where(true_label_np[:, :, 0] == 2)
             bike_idx = np.where(true_label_np[:, :, 0] == 3)
@@ -178,11 +185,11 @@ def train(data_path, max_epoch, pretrained_model,
             label_img = label_img.transpose(2, 0, 1)
 
             out_feature_gt_img \
-                = out_feature_gt[:, 3, ...].cpu().detach().numpy().copy()
+                = out_feature_gt[0, 3:4, ...].cpu().detach().numpy().copy()
 
             in_feature_img \
                 = in_feature[
-                    :, non_empty_channle, ...].cpu().detach().numpy().copy()
+                    0, non_empty_channle:non_empty_channle + 1, ...].cpu().detach().numpy().copy()
             in_feature_img[in_feature_img > 0] = 255
 
             if np.mod(index, vis_interval) == 0:
@@ -214,34 +221,44 @@ def train(data_path, max_epoch, pretrained_model,
         else:
             avg_train_loss = train_loss
 
+        vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
+                 name='avg_train_loss', update='append')
+
         test_loss = 0
         bcnn_model.eval()
         with torch.no_grad():
             for index, (in_feature, out_feature_gt) in enumerate(test_dataloader):
-                out_feature_gt_np = out_feature_gt.detach().numpy().copy()  # HWC
+                out_feature_gt_np = out_feature_gt.detach().numpy().copy()
                 pos_weight = out_feature_gt.detach().numpy().copy()
                 pos_weight = pos_weight[:, 3, ...]
-                zeroidx = np.where(pos_weight == 0)
-                nonzeroidx = np.where(pos_weight != 0)
-                pos_weight[zeroidx] = 0.5
-                pos_weight[nonzeroidx] = 1.
+                object_idx = np.where(pos_weight == 0)
+                nonobject_idx = np.where(pos_weight != 0)
+                pos_weight[object_idx] = 0.5
+                pos_weight[nonobject_idx] = 1.
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)
 
                 class_weight = out_feature_gt.detach().numpy().copy()
                 class_weight = class_weight[:, 4:5, ...]
-                class_weight[np.where(class_weight == 0)] = 0
-                class_weight[np.where(class_weight != 0)] = 1.
-                class_weight = pos_weight.to(device)
+                object_idx = np.where(class_weight != 0)
+                nonobject_idx = np.where(class_weight == 0)
+                class_weight[object_idx] = 0.
+                class_weight[nonobject_idx] = 1.
+                class_weight = np.concatenate(
+                    [class_weight,
+                     class_weight,
+                     class_weight,
+                     class_weight,
+                     class_weight,
+                     class_weight], axis=1)
+                class_weight = torch.from_numpy(class_weight)
+                class_weight = class_weight.to(device)
 
                 in_feature = in_feature.to(device)
                 out_feature_gt = out_feature_gt.to(device)
 
                 optimizer.zero_grad()
                 output = bcnn_model(in_feature)
-
-                confidence = output[:, 3, :, :]
-                pred_class = output[:, 4:10, :, :]
 
                 category_loss, confidence_loss, class_loss, instance_loss, height_loss\
                     = criterion(output, out_feature_gt, pos_weight, class_weight)
@@ -251,21 +268,22 @@ def train(data_path, max_epoch, pretrained_model,
                 iter_loss = loss_for_record.item()
                 test_loss += iter_loss
 
+                confidence = output[0, 3:4, :, :]
                 confidence_np = confidence.cpu().detach().numpy().copy()
                 confidence_np = confidence_np.transpose(1, 2, 0)
-
                 confidence_img = np.zeros((width, height, 1), dtype=np.uint8)
+
                 # conf_idx = np.where(confidence_np[..., 0] > 0.5)
                 conf_idx = np.where(
                     confidence_np[..., 0] > confidence_np[..., 0].mean())
-
-                confidence_img[conf_idx] = 1.
+                confidence_img[conf_idx] = 1.0
                 confidence_img = confidence_img.transpose(2, 0, 1)
 
                 # draw pred class
+                pred_class = output[0, 4:10, :, :]
                 pred_class_np = pred_class.cpu().detach().numpy().copy()
-                pred_class_np = np.argmax(pred_class_np, axis=1)
                 pred_class_np = pred_class_np.transpose(1, 2, 0)
+                pred_class_np = np.argmax(pred_class_np, axis=2)[..., None]
                 car_idx = np.where(pred_class_np[:, :, 0] == 1)
                 bus_idx = np.where(pred_class_np[:, :, 0] == 2)
                 bike_idx = np.where(pred_class_np[:, :, 0] == 3)
@@ -278,10 +296,9 @@ def train(data_path, max_epoch, pretrained_model,
                 pred_class_img = pred_class_img.transpose(2, 0, 1)
 
                 # draw label image
-                out_feature_gt_np = out_feature_gt_np.transpose(0, 2, 3, 1)
+                out_feature_gt_np = out_feature_gt_np[0, ...].transpose(1, 2, 0)
                 true_label_np = out_feature_gt_np[..., 4:10]
-                true_label_np = np.argmax(true_label_np, axis=3)
-                true_label_np = true_label_np.transpose(1, 2, 0)
+                true_label_np = np.argmax(true_label_np, axis=2)[..., None]
                 car_idx = np.where(true_label_np[:, :, 0] == 1)
                 bus_idx = np.where(true_label_np[:, :, 0] == 2)
                 bike_idx = np.where(true_label_np[:, :, 0] == 3)
@@ -294,11 +311,11 @@ def train(data_path, max_epoch, pretrained_model,
                 label_img = label_img.transpose(2, 0, 1)
 
                 out_feature_gt_img \
-                    = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+                    = out_feature_gt[0, 3:4, ...].cpu().detach().numpy().copy()
 
                 in_feature_img \
-                    = in_feature[:, non_empty_channle, ...].cpu(
-                    ).detach().numpy().copy()
+                    = in_feature[
+                        0, non_empty_channle:non_empty_channle + 1, ...].cpu().detach().numpy().copy()
 
                 if np.mod(index, vis_interval) == 0:
                     print('epoch {}, {}/{},test loss is {}'.format(
@@ -360,7 +377,10 @@ if __name__ == "__main__":
 
     parser.add_argument('--data_path', '-dp', type=str,
                         help='Training data path',
-                        default='/media/kosuke/SANDISK/nusc/mini-6c-672/')
+                        default='/media/kosuke/SANDISK/nusc/mini-6c-672-largelabel')
+    parser.add_argument('--batch_size', '-bs', type=int,
+                        help='max epoch',
+                        default=1)
     parser.add_argument('--max_epoch', '-me', type=int,
                         help='max epoch',
                         default=1000000)
@@ -388,6 +408,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     train(data_path=args.data_path,
+          batch_size=args.batch_size,
           max_epoch=args.max_epoch,
           pretrained_model=args.pretrained_model,
           train_data_num=args.train_data_num,

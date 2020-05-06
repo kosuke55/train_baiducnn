@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 
 
-def load_dataset(data_path):
+def load_dataset(data_path, batch_size):
     transform = transforms.Compose([
         transforms.ToTensor()])
     nusc = NuscDataset(data_path, transform)
@@ -19,9 +19,9 @@ def load_dataset(data_path):
     train_dataset, test_dataset = random_split(nusc, [train_size, test_size])
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=1, shuffle=False, num_workers=1)
+        train_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
     test_dataloader = DataLoader(
-        test_dataset, batch_size=1, shuffle=False, num_workers=1)
+        test_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
 
     return train_dataloader, test_dataloader
 
