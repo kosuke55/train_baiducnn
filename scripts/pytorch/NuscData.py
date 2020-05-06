@@ -19,9 +19,9 @@ def load_dataset(data_path):
     train_dataset, test_dataset = random_split(nusc, [train_size, test_size])
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=1, shuffle=True, num_workers=1)
+        train_dataset, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader = DataLoader(
-        test_dataset, batch_size=1, shuffle=True, num_workers=1)
+        test_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     return train_dataloader, test_dataloader
 
@@ -51,9 +51,12 @@ class NuscDataset(Dataset):
         out_feature = np.load(
             os.path.join(self.data_path, "out_feature/", data_name))
         one_hot_class = onehot(out_feature[..., 4].astype(np.int8), 6)
+
         out_feature = np.concatenate(
             [out_feature[..., 0:4],
              one_hot_class, out_feature[..., 5:]], 2)
+
+        out_feature = out_feature.astype(np.float32)
 
         if self.transform:
             in_feature = self.transform(in_feature)

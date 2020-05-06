@@ -4,6 +4,7 @@
 import argparse
 import os
 
+import gdown
 import numpy as np
 import torch
 import torch.optim as optim
@@ -23,7 +24,7 @@ def train(data_path, max_epoch, pretrained_model,
     now = datetime.now().strftime('%Y%m%d_%H%M')
     best_loss = 1e10
     vis = visdom.Visdom()
-    vis_interval = 1
+    vis_interval = 10
 
     if use_constant_feature and use_intensity_feature:
         in_channels = 8
@@ -42,6 +43,12 @@ def train(data_path, max_epoch, pretrained_model,
         bcnn_model.load_state_dict(torch.load(pretrained_model))
     else:
         print('Not found ', pretrained_model)
+        if pretrained_model == 'checkpoints/mini_672_6c.pt':
+            print('Downloading ', pretrained_model)
+            gdown.cached_download(
+                'https://drive.google.com/uc?export=download&id=1Y1rhcs8DW3CDXyAekBtZgf3LiI2Ug9Ie',
+                pretrained_model, md5='d4e961a1a06796de6584800077336c92')
+            bcnn_model.load_state_dict(torch.load(pretrained_model))
 
     bcnn_model.eval()
     save_model_interval = 1
@@ -61,7 +68,7 @@ def train(data_path, max_epoch, pretrained_model,
         print(params_to_update)
         optimizer = optim.SGD(params=params_to_update, lr=1e-5, momentum=0.9)
     else:
-        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-8, momentum=0.9)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9)
 
     prev_time = datetime.now()
     for epo in range(max_epoch):
@@ -73,29 +80,54 @@ def train(data_path, max_epoch, pretrained_model,
             pos_weight = pos_weight[:, 3, ...]
             zeroidx = np.where(pos_weight == 0)
             nonzeroidx = np.where(pos_weight != 0)
-            pos_weight[zeroidx] = 0.1
+            pos_weight[zeroidx] = 0.5
             pos_weight[nonzeroidx] = 1.
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
+
+            class_weight = out_feature_gt.detach().numpy().copy()
+            class_weight = class_weight[:, 4:5, ...]
+            class_weight[np.where(class_weight == 0)] = 0
+            class_weight[np.where(class_weight != 0)] = 1.
+            class_weight = pos_weight.to(device)
+
             criterion = BcnnLoss().to(device)
             in_feature = in_feature.to(device)
             out_feature_gt = out_feature_gt.to(device)
-
-            optimizer.zero_grad()
             output = bcnn_model(in_feature)
 
+            category = output[:, 0, :, :]
             confidence = output[:, 3, :, :]
             pred_class = output[:, 4:10, :, :]
 
-            # loss = criterion(output, out_feature_gt, pos_weight)
             category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                = criterion(output, out_feature_gt, pos_weight)
-            if float(confidence_loss) > 500:
-                loss = category_loss + confidence_loss + \
-                    class_loss * 0.001 + (instance_loss + height_loss) * 0.1
+                = criterion(output, out_feature_gt, pos_weight, class_weight)
+            if float(confidence_loss) > 1000:
+                print("loss function 1")
+                loss = confidence_loss
+
+            elif float(category_loss) > 1500:
+                print("loss function 2")
+                loss = category_loss * 0.01 + confidence_loss
+
+            elif float(category_loss) > 300:
+                print("loss function 3")
+                loss = category_loss + confidence_loss
+
+            elif float(class_loss) > 10000:
+                print("loss function 4")
+                loss = category_loss + confidence_loss + class_loss * 0.01
+
+            elif float(class_loss) > 5000:
+                print("loss function 5")
+                loss = category_loss + confidence_loss + class_loss * 0.1
+
             else:
-                loss = category_loss + confidence_loss + \
-                    class_loss + instance_loss + height_loss
+                print("loss function 6")
+                loss = category_loss + confidence_loss
+                class_loss * 0.1 + (instance_loss + height_loss) * 0.01
+
+            optimizer.zero_grad()
             loss.backward()
 
             loss_for_record = category_loss + confidence_loss + \
@@ -146,11 +178,12 @@ def train(data_path, max_epoch, pretrained_model,
             label_img = label_img.transpose(2, 0, 1)
 
             out_feature_gt_img \
-                = out_feature_gt[:, 0, ...].cpu().detach().numpy().copy()
+                = out_feature_gt[:, 3, ...].cpu().detach().numpy().copy()
 
             in_feature_img \
                 = in_feature[
                     :, non_empty_channle, ...].cpu().detach().numpy().copy()
+            in_feature_img[in_feature_img > 0] = 255
 
             if np.mod(index, vis_interval) == 0:
                 print('epoch {}, {}/{},train loss is {}'.format(
@@ -190,10 +223,17 @@ def train(data_path, max_epoch, pretrained_model,
                 pos_weight = pos_weight[:, 3, ...]
                 zeroidx = np.where(pos_weight == 0)
                 nonzeroidx = np.where(pos_weight != 0)
-                pos_weight[zeroidx] = 0.1
+                pos_weight[zeroidx] = 0.5
                 pos_weight[nonzeroidx] = 1.
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)
+
+                class_weight = out_feature_gt.detach().numpy().copy()
+                class_weight = class_weight[:, 4:5, ...]
+                class_weight[np.where(class_weight == 0)] = 0
+                class_weight[np.where(class_weight != 0)] = 1.
+                class_weight = pos_weight.to(device)
+
                 in_feature = in_feature.to(device)
                 out_feature_gt = out_feature_gt.to(device)
 
@@ -203,9 +243,8 @@ def train(data_path, max_epoch, pretrained_model,
                 confidence = output[:, 3, :, :]
                 pred_class = output[:, 4:10, :, :]
 
-                # loss = criterion(output, out_feature_gt, pos_weight)
                 category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                    = criterion(output, out_feature_gt, pos_weight)
+                    = criterion(output, out_feature_gt, pos_weight, class_weight)
 
                 loss_for_record = category_loss + confidence_loss + \
                                   class_loss + instance_loss + height_loss
@@ -327,7 +366,7 @@ if __name__ == "__main__":
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model',
-                        default='checkpoints/mini_instance_.pt')
+                        default='checkpoints/mini_672_6c.pt')
     parser.add_argument('--train_data_num', '-tr', type=int,
                         help='How much data to use for training',
                         default=1000000)
