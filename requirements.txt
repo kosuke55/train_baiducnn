@@ -1,3 +1,4 @@
+nuscenes-devkit
 gdown
 matplotlib
 numba
