@@ -5,12 +5,9 @@ Train lidar\_apollo\_instance\_segmentation CNN with Nuscenes.
 ## Getting Started  
 Only supports python3.  
 
-1) Clone this repositry and download [nuscenes](https://www.nuscenes.org/) and set PYTHONPATH to [nuscenes API](https://github.com/nutonomy/nuscenes-devkit/tree/master/python-sdk/nuscenes).  
+1) install some packages.  
 ```
-cd  
-git clone https://github.com/kosuke55/train_baiducnn.git  
-git clone https://github.com/nutonomy/nuscenes-devkit.git  
-echo 'PYTHONPATH="$PYTHONPATH:$HOME/nuscenes-devkit/python-sdk"' >> ~/.bashrc  
+pip install -r requirements.txt 
 ```
 2) [create_dataset_from_nusc.py](scripts/create_dataset/create_dataset_from_nusc.py) is for creating a dataset to train apollo cnn.  Set dataroot and save_dir.  
 
