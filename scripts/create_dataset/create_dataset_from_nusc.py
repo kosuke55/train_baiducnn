@@ -69,14 +69,22 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 if box.name.split('.')[0] == 'vehicle':
                     if box.name.split('.')[1] == 'car':
                         label = 1
-                    elif box.name.split('.')[1] == 'bus':
+                    elif (box.name.split('.')[1] in
+                          ['bus', 'construction', 'trailer', 'truck']):
                         label = 2
-                    elif box.name.split('.')[1] == 'truck':
-                        label = 2
-                    elif box.name.split('.')[1] == 'bicycle':
+                    elif box.name.split('.')[1] == 'emergency':
+                        if box.name.split('.')[2] == 'ambulance':
+                            label = 2
+                        # police
+                        else:
+                            label = 1
+                    elif box.name.split('.')[1] in ['bicycle', 'motorcycle']:
                         label = 3
                 elif box.name.split('.')[0] == 'human':
                     label = 4
+                elif (box.name.split('.')[0] in
+                      ['animal', 'movable_object', 'static_object']):
+                    label = 5
                 else:
                     continue
 
