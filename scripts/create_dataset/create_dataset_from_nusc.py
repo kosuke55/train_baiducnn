@@ -39,7 +39,7 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             'Currently only supported if width and height are equal')
 
     grid_length = 2. * grid_range / size
-    label_half_length = 10
+    label_half_length = 0
 
     data_id = 0
     grid_ticks = np.arange(
@@ -71,13 +71,23 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                         if box.name.split('.')[1] == 'car':
                             label = 1
                         elif box.name.split('.')[1] == 'bus':
-                            label = 2
+                            label = 1
                         elif box.name.split('.')[1] == 'truck':
-                            label = 2
+                            label = 1
+                        elif box.name.split('.')[1] == 'construction':
+                            label = 1
+                        elif box.name.split('.')[1] == 'trailer':
+                            label = 1
                         elif box.name.split('.')[1] == 'bicycle':
-                            label = 3
+                            label = 2
+                        elif box.name.split('.')[1] == 'motorcycle':
+                            label = 2
                     elif box.name.split('.')[0] == 'human':
-                        label = 4
+                        label = 3
+                    # elif box.name.split('.')[0] == 'movable_object':
+                    #     label = 1
+                    # elif box.name.split('.')[0] == 'static_object':
+                    #     label = 1
                     else:
                         continue
     
@@ -116,6 +126,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 data_id += 1
                 if data_id == end_id:
                     return
+        except KeyboardInterrupt:
+            return
         except:
             print('skipped')
             continue
@@ -163,15 +175,15 @@ def generate_out_feature(
                 out_feature[i, j, 1] = instance_pt[0]
                 out_feature[i, j, 2] = instance_pt[1]
                 out_feature[i, j, 3] = 1.  # confidence_pt
-                # out_feature[i, j, 4] = label  # classify_pt
-                if i - label_half_length >= 0 and \
-                   i + label_half_length < width and \
-                   j - label_half_length >= 0 and \
-                   j + label_half_length < height:
-                    out_feature[
-                        i - label_half_length:i + label_half_length,
-                        j - label_half_length:j + label_half_length,
-                        4] = label  # classify_pt
+                out_feature[i, j, 4] = label  # classify_pt
+                # if i - label_half_length >= 0 and \
+                #    i + label_half_length < width and \
+                #    j - label_half_length >= 0 and \
+                #    j + label_half_length < height:
+                #     out_feature[
+                #         i - label_half_length:i + label_half_length,
+                #         j - label_half_length:j + label_half_length,
+                #         4] = label  # classify_pt
                 out_feature[i, j, 5] = 0.  # heading_pt (unused)
                 out_feature[i, j, 6] = height_pt  # height_pt
     return out_feature

@@ -39,6 +39,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bcnn_model = BCNN(in_channels=in_channels, n_class=6).to(device)
+    bcnn_model = torch.nn.DataParallel(bcnn_model) # multi gpu
+
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
         bcnn_model.load_state_dict(torch.load(pretrained_model), strict=False)
@@ -88,6 +90,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         # )
         # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
         optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
     for epo in range(max_epoch):
@@ -104,8 +107,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             pos_weight = pos_weight[:, 3, ...]
             object_idx = np.where(pos_weight == 0)
             nonobject_idx = np.where(pos_weight != 0)
-            pos_weight[object_idx] = 0.5
-            pos_weight[nonobject_idx] = 1.
+            pos_weight[object_idx] = 0.4
+            pos_weight[nonobject_idx] = 1.0
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
 
@@ -113,12 +116,12 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             class_weight = class_weight[:, 4:5, ...]
             object_idx = np.where(class_weight != 0)
             nonobject_idx = np.where(class_weight == 0)
-            class_weight[object_idx] = 0.01 ** 2
+            class_weight[object_idx] = 1.
             class_weight[nonobject_idx] = 1.
             class_weight = np.concatenate(
                 [class_weight,
-                 class_weight,
-                 class_weight,
+                 class_weight * 3.0, # bike
+                 class_weight * 10.0, # pedestrian
                  class_weight,
                  class_weight,
                  class_weight], axis=1)
@@ -131,45 +134,48 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             output = bcnn_model(in_feature)
 
             category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                = criterion(output, out_feature_gt, pos_weight, class_weight)
-            if float(confidence_loss) > 1000:
-                print("loss function 1")
-                loss = confidence_loss
+                = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
+            loss = class_loss + (instance_loss + height_loss)
 
-            elif float(category_loss) > 5000:
-                print("loss function 2")
-                loss = category_loss * 0.001 + confidence_loss
+            # if float(confidence_loss) > 1000:
+            #     print("loss function 1")
+            #     loss = confidence_loss + class_loss * 0.01
 
-            elif float(category_loss) > 2000:
-                print("loss function 3")
-                loss = category_loss * 0.01 + confidence_loss
+            # elif float(category_loss) > 5000:
+            #     print("loss function 2")
+            #     loss = category_loss * 0.001 + confidence_loss + class_loss * 0.01
 
-            elif float(category_loss) > 1000:
-                print("loss function 4")
-                loss = category_loss * 0.1 + confidence_loss
+            # elif float(category_loss) > 2000:
+            #     print("loss function 3")
+            #     loss = category_loss * 0.01 + confidence_loss + class_loss * 0.01
 
-            elif float(category_loss) > 300:
-                print("loss function 5")
-                loss = category_loss + confidence_loss
+            # elif float(category_loss) > 1000:
+            #     print("loss function 4")
+            #     loss = category_loss * 0.1 + confidence_loss + class_loss * 0.01
 
-            elif float(class_loss) > 10000:
-                print("loss function 6")
-                loss = category_loss + confidence_loss + class_loss * 0.01
+            # elif float(category_loss) > 300:
+            #     print("loss function 5")
+            #     loss = category_loss + confidence_loss + class_loss * 0.01
 
-            elif float(class_loss) > 5000:
-                print("loss function 7")
-                loss = category_loss + confidence_loss + class_loss * 0.1
+            # elif float(class_loss) > 10000:
+            #     print("loss function 6")
+            #     loss = category_loss + confidence_loss + class_loss * 0.05
 
-            else:
-                print("loss function 8")
-                loss = category_loss + confidence_loss \
-                       + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
+            # elif float(class_loss) > 5000:
+            #     print("loss function 7")
+            #     loss = category_loss + confidence_loss + class_loss * 0.1
+
+            # else:
+            #     print("loss function 8")
+            #     loss = category_loss + confidence_loss \
+            #            + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
 
             optimizer.zero_grad()
             loss.backward()
 
-            loss_for_record = category_loss + confidence_loss + \
-                              class_loss + instance_loss + height_loss
+            # loss_for_record = category_loss + confidence_loss + \
+            #                   class_loss + instance_loss + height_loss
+            loss_for_record = class_loss + instance_loss + height_loss
             iter_loss = loss_for_record.item()
             train_loss += iter_loss
             category_train_loss += category_loss.item() 
@@ -270,16 +276,17 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
         vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
                  name='avg_train_loss', update='append')
-        vis.line(X=np.array([epo]), Y=np.array([avg_confidence_train_loss]), win='loss',
-                 name='avg_confidence_train_loss', update='append')
-        vis.line(X=np.array([epo]), Y=np.array([avg_category_train_loss]), win='loss',
-                 name='avg_category_train_loss', update='append')
+        # vis.line(X=np.array([epo]), Y=np.array([avg_confidence_train_loss]), win='loss',
+        #          name='avg_confidence_train_loss', update='append')
+        # vis.line(X=np.array([epo]), Y=np.array([avg_category_train_loss]), win='loss',
+        #          name='avg_category_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_class_train_loss]), win='loss',
                  name='avg_class_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_instance_train_loss]), win='loss',
                  name='avg_instance_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_height_train_loss]), win='loss',
                  name='avg_height_train_loss', update='append')
+        scheduler.step()
 
         test_loss = 0
         bcnn_model.eval()
@@ -290,7 +297,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 pos_weight = pos_weight[:, 3, ...]
                 object_idx = np.where(pos_weight == 0)
                 nonobject_idx = np.where(pos_weight != 0)
-                pos_weight[object_idx] = 0.5
+                pos_weight[object_idx] = 0.4
                 pos_weight[nonobject_idx] = 1.
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)
@@ -299,12 +306,12 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = class_weight[:, 4:5, ...]
                 object_idx = np.where(class_weight != 0)
                 nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 0.01 ** 2
+                class_weight[object_idx] = 1.
                 class_weight[nonobject_idx] = 1.
                 class_weight = np.concatenate(
                     [class_weight,
-                     class_weight,
-                     class_weight,
+                     class_weight * 3.0, # bike
+                     class_weight * 10.0, # pedestrian
                      class_weight,
                      class_weight,
                      class_weight], axis=1)
@@ -318,10 +325,11 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 output = bcnn_model(in_feature)
 
                 category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                    = criterion(output, out_feature_gt, pos_weight, class_weight)
+                    = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
 
-                loss_for_record = category_loss + confidence_loss + \
-                                  class_loss + instance_loss + height_loss
+                # loss_for_record = category_loss + confidence_loss + \
+                #                   class_loss + instance_loss + height_loss
+                loss_for_record = class_loss + instance_loss + height_loss
                 iter_loss = loss_for_record.item()
                 test_loss += iter_loss
 
@@ -405,10 +413,6 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                  name='avg_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_test_loss]), win='loss',
                  name='avg_test_loss', update='append')
-        vis.line(X=np.array([epo]), Y=np.array([avg_confidence_train_loss]), win='loss',
-                 name='avg_confidence_train_loss', update='append')
-        vis.line(X=np.array([epo]), Y=np.array([avg_category_train_loss]), win='loss',
-                 name='avg_category_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_class_train_loss]), win='loss',
                  name='avg_class_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_instance_train_loss]), win='loss',

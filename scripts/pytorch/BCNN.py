@@ -106,11 +106,23 @@ class BCNN(nn.Module):
 
         deconv0 = self.deconv0(deconv1_1)
 
+        category = torch.sigmoid(deconv0[:, 0:1, :, :])
+        instance_x = (torch.sigmoid(deconv0[:, 1:2, :, :]) - 0.5) * 20.
+        instance_y = (torch.sigmoid(deconv0[:, 2:3, :, :]) - 0.5) * 20.
         confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
         pred_class = F.softmax(deconv0[:, 4:10, :, :])
+        heading = deconv0[:, 10:11, :, :]
+        height = torch.sigmoid(deconv0[:, 11:12, :, :]) * 5.
+        # print(category)
+        # print(instance_x)
+        # print(instance_y)
+        # print(confidence)
+        # print(pred_class)
+        # print(heading)
+        # print(height)
         output = torch.cat(
-            [deconv0[:, 0:3, ...], confidence,
-             pred_class, deconv0[:, 10:, ...]], dim=1)
+            [category, instance_x, instance_y, confidence,
+             pred_class, heading, height], dim=1)
 
         return output
 
