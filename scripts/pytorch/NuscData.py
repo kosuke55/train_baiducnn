@@ -19,9 +19,9 @@ def load_dataset(data_path, batch_size):
     train_dataset, test_dataset = random_split(nusc, [train_size, test_size])
 
     train_dataloader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+        train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     test_dataloader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+        test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
     return train_dataloader, test_dataloader
 

@@ -89,7 +89,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         #     amsbound=False,
         # )
         # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
-        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=2e-6, momentum=0.9, weight_decay=1e-6)
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
@@ -120,9 +120,9 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             class_weight[nonobject_idx] = 1.
             class_weight = np.concatenate(
                 [class_weight,
-                 class_weight * 3.0, # bike
-                 class_weight * 10.0, # pedestrian
                  class_weight,
+                 class_weight * 10.0,  # bike
+                 class_weight * 5.0,  # pedestrian
                  class_weight,
                  class_weight], axis=1)
             class_weight = torch.from_numpy(class_weight)
@@ -306,13 +306,13 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = class_weight[:, 4:5, ...]
                 object_idx = np.where(class_weight != 0)
                 nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 1.
+                class_weight[object_idx] = 0.5
                 class_weight[nonobject_idx] = 1.
                 class_weight = np.concatenate(
                     [class_weight,
-                     class_weight * 3.0, # bike
-                     class_weight * 10.0, # pedestrian
                      class_weight,
+                     class_weight * 10.0, # bike
+                     class_weight * 8.0, # pedestrian
                      class_weight,
                      class_weight], axis=1)
                 class_weight = torch.from_numpy(class_weight)
