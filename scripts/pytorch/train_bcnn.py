@@ -43,14 +43,14 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
-        bcnn_model.load_state_dict(torch.load(pretrained_model), strict=False)
+        bcnn_model.load_state_dict(torch.load(pretrained_model))
     else:
         print('Not found ', pretrained_model)
         if pretrained_model == 'checkpoints/bestmodel.pt':
             print('Downloading ', pretrained_model)
             gdown.cached_download(
-                'https://drive.google.com/uc?export=download&id=1Y1rhcs8DW3CDXyAekBtZgf3LiI2Ug9Ie',
-                pretrained_model, md5='d4e961a1a06796de6584800077336c92')
+                'https://drive.google.com/uc?export=download&id=19IPtsVes3w-qogsiJToHmLrjCAdVEl9K',
+                pretrained_model, md5='b124dab72fd6f2b642c6e46e5b142ebf')
             bcnn_model.load_state_dict(torch.load(pretrained_model))
 
     bcnn_model.eval()

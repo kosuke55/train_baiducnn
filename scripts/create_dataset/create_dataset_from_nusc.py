@@ -82,6 +82,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                             label = 2
                         elif box.name.split('.')[1] == 'motorcycle':
                             label = 2
+                        elif box.name.split('.')[1] == 'emergency':
+                            label = 2
                     elif box.name.split('.')[0] == 'human':
                         label = 3
                     # elif box.name.split('.')[0] == 'movable_object':
