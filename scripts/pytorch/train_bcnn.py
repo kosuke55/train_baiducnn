@@ -26,7 +26,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
     best_loss = 1e10
     vis = visdom.Visdom()
     vis_interval = 1
-
+    
     if use_constant_feature and use_intensity_feature:
         in_channels = 8
         non_empty_channle = 7
@@ -46,7 +46,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         bcnn_model.load_state_dict(torch.load(pretrained_model), strict=False)
     else:
         print('Not found ', pretrained_model)
-        if pretrained_model == 'checkpoints/mini_672_6c.pt':
+        if pretrained_model == 'checkpoints/bestmodel.pt':
             print('Downloading ', pretrained_model)
             gdown.cached_download(
                 'https://drive.google.com/uc?export=download&id=1Y1rhcs8DW3CDXyAekBtZgf3LiI2Ug9Ie',
@@ -112,17 +112,21 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
 
+            bike_class_weight = 10.0
+            pedestrian_class_weight = 8.0
+            object_weight = 0.5
+            non_object_weight = 1.25
             class_weight = out_feature_gt.detach().numpy().copy()
             class_weight = class_weight[:, 4:5, ...]
             object_idx = np.where(class_weight != 0)
             nonobject_idx = np.where(class_weight == 0)
-            class_weight[object_idx] = 1.
-            class_weight[nonobject_idx] = 1.
+            class_weight[object_idx] = object_weight
+            class_weight[nonobject_idx] = non_object_weight
             class_weight = np.concatenate(
                 [class_weight,
                  class_weight,
-                 class_weight * 10.0,  # bike
-                 class_weight * 5.0,  # pedestrian
+                 class_weight * bike_class_weight,  # bike
+                 class_weight * pedestrian_class_weight,  # pedestrian
                  class_weight,
                  class_weight], axis=1)
             class_weight = torch.from_numpy(class_weight)
@@ -298,7 +302,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 object_idx = np.where(pos_weight == 0)
                 nonobject_idx = np.where(pos_weight != 0)
                 pos_weight[object_idx] = 0.4
-                pos_weight[nonobject_idx] = 1.
+                pos_weight[nonobject_idx] = 1.0
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)
 
@@ -306,13 +310,13 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = class_weight[:, 4:5, ...]
                 object_idx = np.where(class_weight != 0)
                 nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 0.5
-                class_weight[nonobject_idx] = 1.
+                class_weight[object_idx] = object_weight
+                class_weight[nonobject_idx] = non_object_weight
                 class_weight = np.concatenate(
                     [class_weight,
                      class_weight,
-                     class_weight * 10.0, # bike
-                     class_weight * 8.0, # pedestrian
+                     class_weight * bike_class_weight, # bike
+                     class_weight * pedestrian_class_weight, # pedestrian
                      class_weight,
                      class_weight], axis=1)
                 class_weight = torch.from_numpy(class_weight)
