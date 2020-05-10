@@ -8,6 +8,7 @@ import gdown
 import numpy as np
 import torch
 import torch.optim as optim
+# import torch_optimizer as optim
 import visdom
 from datetime import datetime
 
@@ -25,7 +26,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
     best_loss = 1e10
     vis = visdom.Visdom()
     vis_interval = 1
-
+    
     if use_constant_feature and use_intensity_feature:
         in_channels = 8
         non_empty_channle = 7
@@ -38,12 +39,14 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bcnn_model = BCNN(in_channels=in_channels, n_class=6).to(device)
+    bcnn_model = torch.nn.DataParallel(bcnn_model) # multi gpu
+
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
         bcnn_model.load_state_dict(torch.load(pretrained_model))
     else:
         print('Not found ', pretrained_model)
-        if pretrained_model == 'checkpoints/mini_672_6c.pt':
+        if pretrained_model == 'checkpoints/bestmodel.pt':
             print('Downloading ', pretrained_model)
             gdown.cached_download(
                 'https://drive.google.com/uc?export=download&id=19IPtsVes3w-qogsiJToHmLrjCAdVEl9K',
@@ -68,11 +71,35 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         print(params_to_update)
         optimizer = optim.SGD(params=params_to_update, lr=1e-5, momentum=0.9)
     else:
-        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9)
+        # optimizer = optim.RAdam(
+        #     bcnn_model.parameters(),
+        #     lr=1e-5,
+        #     betas=(0.9, 0.999),
+        #     eps=1e-8,
+        #     weight_decay=0,
+        # )
+        # optimizer = optim.AdaBound(
+        #     bcnn_model.parameters(),
+        #     lr=1e-4,
+        #     betas=(0.9, 0.999),
+        #     final_lr=0.1,
+        #     gamma=1e-3,
+        #     eps=1e-8,
+        #     weight_decay=0,
+        #     amsbound=False,
+        # )
+        # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=2e-6, momentum=0.9, weight_decay=1e-6)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
     for epo in range(max_epoch):
         train_loss = 0
+        category_train_loss = 0
+        confidence_train_loss = 0
+        class_train_loss = 0
+        instance_train_loss = 0 
+        height_train_loss = 0
         bcnn_model.train()
         for index, (in_feature, out_feature_gt) in enumerate(train_dataloader):
             out_feature_gt_np = out_feature_gt.detach().numpy().copy()
@@ -80,22 +107,26 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             pos_weight = pos_weight[:, 3, ...]
             object_idx = np.where(pos_weight == 0)
             nonobject_idx = np.where(pos_weight != 0)
-            pos_weight[object_idx] = 0.5
-            pos_weight[nonobject_idx] = 1.
+            pos_weight[object_idx] = 0.4
+            pos_weight[nonobject_idx] = 1.0
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
 
+            bike_class_weight = 10.0
+            pedestrian_class_weight = 8.0
+            object_weight = 0.5
+            non_object_weight = 1.25
             class_weight = out_feature_gt.detach().numpy().copy()
             class_weight = class_weight[:, 4:5, ...]
             object_idx = np.where(class_weight != 0)
             nonobject_idx = np.where(class_weight == 0)
-            class_weight[object_idx] = 0.01 ** 2
-            class_weight[nonobject_idx] = 1.
+            class_weight[object_idx] = object_weight
+            class_weight[nonobject_idx] = non_object_weight
             class_weight = np.concatenate(
                 [class_weight,
                  class_weight,
-                 class_weight,
-                 class_weight,
+                 class_weight * bike_class_weight,  # bike
+                 class_weight * pedestrian_class_weight,  # pedestrian
                  class_weight,
                  class_weight], axis=1)
             class_weight = torch.from_numpy(class_weight)
@@ -107,39 +138,55 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             output = bcnn_model(in_feature)
 
             category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                = criterion(output, out_feature_gt, pos_weight, class_weight)
-            if float(confidence_loss) > 1000:
-                print("loss function 1")
-                loss = confidence_loss
+                = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
+            loss = class_loss + (instance_loss + height_loss)
 
-            elif float(category_loss) > 1500:
-                print("loss function 2")
-                loss = category_loss * 0.01 + confidence_loss
+            # if float(confidence_loss) > 1000:
+            #     print("loss function 1")
+            #     loss = confidence_loss + class_loss * 0.01
 
-            elif float(category_loss) > 300:
-                print("loss function 3")
-                loss = category_loss + confidence_loss
+            # elif float(category_loss) > 5000:
+            #     print("loss function 2")
+            #     loss = category_loss * 0.001 + confidence_loss + class_loss * 0.01
 
-            elif float(class_loss) > 10000:
-                print("loss function 4")
-                loss = category_loss + confidence_loss + class_loss * 0.01
+            # elif float(category_loss) > 2000:
+            #     print("loss function 3")
+            #     loss = category_loss * 0.01 + confidence_loss + class_loss * 0.01
 
-            elif float(class_loss) > 5000:
-                print("loss function 5")
-                loss = category_loss + confidence_loss + class_loss * 0.1
+            # elif float(category_loss) > 1000:
+            #     print("loss function 4")
+            #     loss = category_loss * 0.1 + confidence_loss + class_loss * 0.01
 
-            else:
-                print("loss function 6")
-                loss = category_loss + confidence_loss \
-                       + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
+            # elif float(category_loss) > 300:
+            #     print("loss function 5")
+            #     loss = category_loss + confidence_loss + class_loss * 0.01
+
+            # elif float(class_loss) > 10000:
+            #     print("loss function 6")
+            #     loss = category_loss + confidence_loss + class_loss * 0.05
+
+            # elif float(class_loss) > 5000:
+            #     print("loss function 7")
+            #     loss = category_loss + confidence_loss + class_loss * 0.1
+
+            # else:
+            #     print("loss function 8")
+            #     loss = category_loss + confidence_loss \
+            #            + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
 
             optimizer.zero_grad()
             loss.backward()
 
-            loss_for_record = category_loss + confidence_loss + \
-                              class_loss + instance_loss + height_loss
+            # loss_for_record = category_loss + confidence_loss + \
+            #                   class_loss + instance_loss + height_loss
+            loss_for_record = class_loss + instance_loss + height_loss
             iter_loss = loss_for_record.item()
             train_loss += iter_loss
+            category_train_loss += category_loss.item() 
+            confidence_train_loss += confidence_loss.item()
+            class_train_loss+= class_loss.item()
+            instance_train_loss += instance_loss.item()
+            height_train_loss += height_loss.item()
             optimizer.step()
 
             confidence = output[0, 3:4, :, :]
@@ -218,11 +265,32 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
         if len(train_dataloader) > 0:
             avg_train_loss = train_loss / len(train_dataloader)
+            avg_confidence_train_loss = confidence_train_loss / len(train_dataloader)
+            avg_category_train_loss = category_train_loss / len(train_dataloader)
+            avg_class_train_loss = class_train_loss / len(train_dataloader)
+            avg_instance_train_loss = instance_train_loss / len(train_dataloader)
+            avg_height_train_loss = height_train_loss / len(train_dataloader)
         else:
             avg_train_loss = train_loss
+            avg_confidence_train_loss = confidence_train_loss
+            avg_category_train_loss = category_train_loss 
+            avg_class_train_loss = class_train_loss 
+            avg_instance_train_loss = instance_train_loss 
+            avg_height_train_loss = height_train_loss 
 
         vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
                  name='avg_train_loss', update='append')
+        # vis.line(X=np.array([epo]), Y=np.array([avg_confidence_train_loss]), win='loss',
+        #          name='avg_confidence_train_loss', update='append')
+        # vis.line(X=np.array([epo]), Y=np.array([avg_category_train_loss]), win='loss',
+        #          name='avg_category_train_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_class_train_loss]), win='loss',
+                 name='avg_class_train_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_instance_train_loss]), win='loss',
+                 name='avg_instance_train_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_height_train_loss]), win='loss',
+                 name='avg_height_train_loss', update='append')
+        scheduler.step()
 
         test_loss = 0
         bcnn_model.eval()
@@ -233,8 +301,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 pos_weight = pos_weight[:, 3, ...]
                 object_idx = np.where(pos_weight == 0)
                 nonobject_idx = np.where(pos_weight != 0)
-                pos_weight[object_idx] = 0.5
-                pos_weight[nonobject_idx] = 1.
+                pos_weight[object_idx] = 0.4
+                pos_weight[nonobject_idx] = 1.0
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)
 
@@ -242,13 +310,13 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = class_weight[:, 4:5, ...]
                 object_idx = np.where(class_weight != 0)
                 nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 0.01 ** 2
-                class_weight[nonobject_idx] = 1.
+                class_weight[object_idx] = object_weight
+                class_weight[nonobject_idx] = non_object_weight
                 class_weight = np.concatenate(
                     [class_weight,
                      class_weight,
-                     class_weight,
-                     class_weight,
+                     class_weight * bike_class_weight, # bike
+                     class_weight * pedestrian_class_weight, # pedestrian
                      class_weight,
                      class_weight], axis=1)
                 class_weight = torch.from_numpy(class_weight)
@@ -261,10 +329,11 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 output = bcnn_model(in_feature)
 
                 category_loss, confidence_loss, class_loss, instance_loss, height_loss\
-                    = criterion(output, out_feature_gt, pos_weight, class_weight)
+                    = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
 
-                loss_for_record = category_loss + confidence_loss + \
-                                  class_loss + instance_loss + height_loss
+                # loss_for_record = category_loss + confidence_loss + \
+                #                   class_loss + instance_loss + height_loss
+                loss_for_record = class_loss + instance_loss + height_loss
                 iter_loss = loss_for_record.item()
                 test_loss += iter_loss
 
@@ -348,7 +417,12 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                  name='avg_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_test_loss]), win='loss',
                  name='avg_test_loss', update='append')
-
+        vis.line(X=np.array([epo]), Y=np.array([avg_class_train_loss]), win='loss',
+                 name='avg_class_train_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_instance_train_loss]), win='loss',
+                 name='avg_instance_train_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_height_train_loss]), win='loss',
+                 name='avg_height_train_loss', update='append')
         cur_time = datetime.now()
         h, remainder = divmod((cur_time - prev_time).seconds, 3600)
         m, s = divmod(remainder, 60)
