@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import feature_generator as fg
-from nuscenes.utils.data_classes import LidarPointCloud
-from nuscenes.nuscenes import NuScenes
-import numpy as np
-import numba
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import argparse
 import os
 import sys
@@ -15,6 +8,16 @@ for path in sys.path:
     if 'opt/ros/' in path:
         print('sys.path.remove({})'.format(path))
         sys.path.remove(path)
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numba
+import numpy as np
+from nuscenes.nuscenes import NuScenes
+from nuscenes.utils.data_classes import LidarPointCloud
+
+import feature_generator as fg
+
 
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
