@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import feature_generator as fg
+from nuscenes.utils.data_classes import LidarPointCloud
+from nuscenes.nuscenes import NuScenes
+import numpy as np
+import numba
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import argparse
 import os
 import sys
@@ -8,15 +15,6 @@ for path in sys.path:
     if 'opt/ros/' in path:
         print('sys.path.remove({})'.format(path))
         sys.path.remove(path)
-
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import numba
-import numpy as np
-from nuscenes.nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud
-
-import feature_generator as fg
 
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
@@ -55,15 +53,16 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             while(token != ''):
                 print('--- {} '.format(data_id) + token + ' ---')
                 my_sample = nusc.get('sample', token)
-                sd_record = nusc.get('sample_data', my_sample['data'][ref_chan])
+                sd_record = nusc.get(
+                    'sample_data', my_sample['data'][ref_chan])
                 sample_rec = nusc.get('sample', sd_record['sample_token'])
                 chan = sd_record['channel']
-    
+
                 pc, times = LidarPointCloud.from_file_multisweep(
                     nusc, sample_rec, chan, ref_chan, nsweeps=1)
                 _, boxes, _ = nusc.get_sample_data(
                     sd_record['token'], box_vis_level=0)
-    
+
                 out_feature = np.zeros((size, size, 7), dtype=np.float32)
                 for box_idx, box in enumerate(boxes):
                     label = 0
@@ -92,16 +91,17 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                     #     label = 1
                     else:
                         continue
-    
-                    height_pt = np.linalg.norm(box.corners().T[0] - box.corners().T[3])
+
+                    height_pt = np.linalg.norm(
+                        box.corners().T[0] - box.corners().T[3])
                     corners2d = box.corners()[:2, :]
                     box2d = corners2d.T[[2, 3, 7, 6]]
-    
+
                     box2d_center = box2d.mean(axis=0)
                     generate_out_feature(width, height, size, grid_centers,
                                          box2d, box2d_center, height_pt,
                                          label, label_half_length, out_feature)
-    
+
                 out_feature = out_feature.astype(np.float16)
                 feature_generator = fg.Feature_generator(
                     grid_range, width, height,
@@ -114,23 +114,26 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                     in_feature = in_feature.reshape(size, size, 6)
                 else:
                     in_feature = in_feature.reshape(size, size, 4)
-    
+
                 # instance_pt is flipped due to flip
                 out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
                 out_feature[:, :, 1:3] *= -1
-    
+
                 np.save(os.path.join(
                     save_dir, 'in_feature/{:05}'.format(data_id)), in_feature)
-                np.save(os.path.join(
-                    save_dir, 'out_feature/{:05}'.format(data_id)), out_feature)
-    
+                np.save(
+                    os.path.join(
+                        save_dir,
+                        'out_feature/{:05}'.format(data_id)),
+                    out_feature)
+
                 token = my_sample['next']
                 data_id += 1
                 if data_id == end_id:
                     return
         except KeyboardInterrupt:
             return
-        except:
+        except BaseException:
             print('skipped')
             continue
 

@@ -13,14 +13,15 @@ class BcnnLoss(Module):
         gamma = 4.0
         alpha = 1.0
         category_diff = output[:, 0, ...] - target[:, 0, ...]
-        category_loss = torch.sum((weight * category_diff) ** 2) * 0.1 
+        category_loss = torch.sum((weight * category_diff) ** 2) * 0.1
 
         confidence_diff = output[:, 3, ...] - target[:, 3, ...]
         confidence_loss = torch.sum((weight * confidence_diff) ** 2) * 0.1
         # class_loss = -torch.sum(class_weight * ((1.0 - output[:, 4:10, ...]) ** gamma) * (target[:, 4:10, ...] * torch.log(
-        #     output[:, 4:10, ...] + 1e-7)) * (1.0 + torch.log(alpha * input[:, 2:3, ...] + 1.0))) * 0.01
-        class_loss = -torch.sum(class_weight * ((1.0 - output[:, 4:10, ...]) ** gamma) * (target[:, 4:10, ...] * torch.log(
-            output[:, 4:10, ...] + 1e-7)) * (1.0 + input[:, 2:3, ...])) * 0.01
+        # output[:, 4:10, ...] + 1e-7)) * (1.0 + torch.log(alpha * input[:,
+        # 2:3, ...] + 1.0))) * 0.01
+        class_loss = -torch.sum(class_weight * ((1.0 - output[:, 4:10, ...]) ** gamma) * (
+            target[:, 4:10, ...] * torch.log(output[:, 4:10, ...] + 1e-7)) * (1.0 + input[:, 2:3, ...])) * 0.01
         instance_x_diff = output[:, 1, ...] - target[:, 1, ...]
         instance_y_diff = output[:, 2, ...] - target[:, 2, ...]
         # print("instance_x_diff max output", output[:, 1, ...].max())
