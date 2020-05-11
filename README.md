@@ -35,7 +35,7 @@ onnx2trt <your_trained_model.onnx> -o <your_trained_model.engine>
 
 5) Run [lidar_apollo_instance_segmentation](https://github.com/tier4/AutowareArchitectureProposal/tree/master/src/perception/object_recognition/detection/lidar_apollo_instance_segmentation) with <your_trained_model.engine>  
 
-![result](https://github.com/kosuke55/train_baiducnn/blob/media/bcnn_trt_class_all_nusc_0201.gif)  
+<img src="https://user-images.githubusercontent.com/39142679/81552155-ed721480-93bd-11ea-9b9d-88e88dab2ecf.gif" width="680">  
 
 ## reference
 [apollo 3D Obstacle Percption description][1]  
