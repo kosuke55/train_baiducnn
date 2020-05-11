@@ -74,7 +74,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
     else:
         # optimizer = optim.RAdam(
         #     bcnn_model.parameters(),
-        #     lr=1e-5,
+        #     lr=2e-6,
         #     betas=(0.9, 0.999),
         #     eps=1e-8,
         #     weight_decay=0,
@@ -90,13 +90,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         #     amsbound=False,
         # )
         # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
-        optimizer = optim.SGD(
-            bcnn_model.parameters(),
-            lr=2e-6,
-            momentum=0.9,
-            weight_decay=1e-6)
-    scheduler = optim.lr_scheduler.LambdaLR(
-        optimizer, lr_lambda=lambda epo: 0.9 ** epo)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=2e-6, momentum=0.9, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
     for epo in range(max_epoch):
@@ -113,15 +108,15 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             pos_weight = pos_weight[:, 3, ...]
             object_idx = np.where(pos_weight == 0)
             nonobject_idx = np.where(pos_weight != 0)
-            pos_weight[object_idx] = 0.4
+            pos_weight[object_idx] = 1.0
             pos_weight[nonobject_idx] = 1.0
             pos_weight = torch.from_numpy(pos_weight)
             pos_weight = pos_weight.to(device)
 
-            bike_class_weight = 10.0
-            pedestrian_class_weight = 8.0
-            object_weight = 0.5
-            non_object_weight = 1.25
+            bike_class_weight = 8.0
+            pedestrian_class_weight = 5.0
+            object_weight = 1.0
+            non_object_weight = 1.0
             class_weight = out_feature_gt.detach().numpy().copy()
             class_weight = class_weight[:, 4:5, ...]
             object_idx = np.where(class_weight != 0)
@@ -147,38 +142,6 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
             loss = class_loss + (instance_loss + height_loss)
 
-            # if float(confidence_loss) > 1000:
-            #     print("loss function 1")
-            #     loss = confidence_loss + class_loss * 0.01
-
-            # elif float(category_loss) > 5000:
-            #     print("loss function 2")
-            #     loss = category_loss * 0.001 + confidence_loss + class_loss * 0.01
-
-            # elif float(category_loss) > 2000:
-            #     print("loss function 3")
-            #     loss = category_loss * 0.01 + confidence_loss + class_loss * 0.01
-
-            # elif float(category_loss) > 1000:
-            #     print("loss function 4")
-            #     loss = category_loss * 0.1 + confidence_loss + class_loss * 0.01
-
-            # elif float(category_loss) > 300:
-            #     print("loss function 5")
-            #     loss = category_loss + confidence_loss + class_loss * 0.01
-
-            # elif float(class_loss) > 10000:
-            #     print("loss function 6")
-            #     loss = category_loss + confidence_loss + class_loss * 0.05
-
-            # elif float(class_loss) > 5000:
-            #     print("loss function 7")
-            #     loss = category_loss + confidence_loss + class_loss * 0.1
-
-            # else:
-            #     print("loss function 8")
-            #     loss = category_loss + confidence_loss \
-            #            + class_loss * 0.1 + (instance_loss + height_loss) * 0.01
 
             optimizer.zero_grad()
             loss.backward()
@@ -329,7 +292,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 pos_weight = pos_weight[:, 3, ...]
                 object_idx = np.where(pos_weight == 0)
                 nonobject_idx = np.where(pos_weight != 0)
-                pos_weight[object_idx] = 0.4
+                pos_weight[object_idx] = 1.0
                 pos_weight[nonobject_idx] = 1.0
                 pos_weight = torch.from_numpy(pos_weight)
                 pos_weight = pos_weight.to(device)

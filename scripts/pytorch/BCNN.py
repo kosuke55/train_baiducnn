@@ -135,7 +135,7 @@ class Conv2DBatchNormRelu(nn.Module):
             in_channels, out_channels,
             kernel_size, stride, padding, dilation, bias=bias)
         self.batchnorm = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.LeakyReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
