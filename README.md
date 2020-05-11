@@ -5,9 +5,11 @@ Train lidar\_apollo\_instance\_segmentation CNN with Nuscenes.
 ## Getting Started  
 Only supports python3.  
 
-1) install some packages.  
+1) Clone original_model branch and install some packages.  
+
 ```
-pip install -r requirements.txt 
+git clone -b original_model https://github.com/kosuke55/train_baiducnn.git  
+pip install -r requirements.txt  
 ```
 2) [create_dataset_from_nusc.py](scripts/create_dataset/create_dataset_from_nusc.py) is for creating a dataset to train apollo cnn.  Set dataroot and save_dir.  
 
@@ -35,7 +37,7 @@ onnx2trt <your_trained_model.onnx> -o <your_trained_model.engine>
 
 5) Run [lidar_apollo_instance_segmentation](https://github.com/tier4/AutowareArchitectureProposal/tree/master/src/perception/object_recognition/detection/lidar_apollo_instance_segmentation) with <your_trained_model.engine>  
 
-![result](https://github.com/kosuke55/train_baiducnn/blob/media/bcnn_trt_class_all_nusc_0201.gif)  
+<img src="https://user-images.githubusercontent.com/39142679/81552155-ed721480-93bd-11ea-9b9d-88e88dab2ecf.gif" width="680">  
 
 ## reference
 [apollo 3D Obstacle Percption description][1]  
