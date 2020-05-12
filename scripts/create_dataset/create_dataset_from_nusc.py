@@ -84,7 +84,7 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                     label = 4
                 elif (box.name.split('.')[0] in
                       ['animal', 'movable_object', 'static_object']):
-                    label = 5
+                    label = 0
                 else:
                     continue
 
