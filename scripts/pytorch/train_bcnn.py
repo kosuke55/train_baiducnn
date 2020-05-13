@@ -16,6 +16,7 @@ from BCNN import BCNN
 from BcnnLoss import BcnnLoss
 from NuscData import load_dataset
 
+import math
 
 def train(data_path, batch_size, max_epoch, pretrained_model,
           train_data_num, test_data_num,
@@ -100,6 +101,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         confidence_train_loss = 0
         class_train_loss = 0
         instance_train_loss = 0
+        heading_train_loss = 0
         height_train_loss = 0
         bcnn_model.train()
         for index, (in_feature, out_feature_gt) in enumerate(train_dataloader):
@@ -138,9 +140,9 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             out_feature_gt = out_feature_gt.to(device)
             output = bcnn_model(in_feature)
 
-            category_loss, confidence_loss, class_loss, instance_loss, height_loss\
+            category_loss, confidence_loss, class_loss, instance_loss, heading_loss, height_loss\
                 = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
-            loss = class_loss + (instance_loss + height_loss)
+            loss = class_loss + instance_loss + heading_loss + height_loss
 
 
             optimizer.zero_grad()
@@ -148,13 +150,14 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
             # loss_for_record = category_loss + confidence_loss + \
             #                   class_loss + instance_loss + height_loss
-            loss_for_record = class_loss + instance_loss + height_loss
+            loss_for_record = class_loss + instance_loss + heading_loss + height_loss
             iter_loss = loss_for_record.item()
             train_loss += iter_loss
             category_train_loss += category_loss.item()
             confidence_train_loss += confidence_loss.item()
             class_train_loss += class_loss.item()
             instance_train_loss += instance_loss.item()
+            heading_train_loss += heading_loss.item()
             height_train_loss += height_loss.item()
             optimizer.step()
 
@@ -200,6 +203,21 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             label_img[human_idx] = [0, 255, 255]
             label_img = label_img.transpose(2, 0, 1)
 
+            # pred_heading = output[0, 10:11, :, :]
+            # pred_heading_np = pred_heading.cpu().detach().numpy().copy()
+            # pred_heading_np = pred_heading_np.transpose(1, 2, 0)
+            # pred_heading_np = np.argmax(pred_heading_np, axis=2)[..., None]
+            # zero_60_idx = np.where(pred_heading_np[:, :, 0] < math.pi/2)
+            # # sixty_120_idx = np.where(
+            # #     math.pi/3 < pred_heading_np[:, :, 0]  < math.pi*2/3)
+            # one_hundred_twenty_180_idx = np.where(math.pi/2 <
+            #                                       pred_heading_np[:, :, 0])
+            # pred_heading_img = np.zeros((width, height, 3))
+            # pred_heading_img[zero_60_idx] = [255, 0, 0]
+            # # pred_heading_img[sixty_120_idx] = [0, 255, 0]
+            # pred_heading_img[one_hundred_twenty_180_idx] = [0, 0, 255]
+            # pred_heading_img = pred_heading_img.transpose(2, 0, 1)
+
             out_feature_gt_img \
                 = out_feature_gt[0, 3:4, ...].cpu().detach().numpy().copy()
 
@@ -219,6 +237,10 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                            win='train in_feature',
                            opts=dict(
                                title='train in_feature'))
+                # vis.images(pred_heading_img,
+                #            win='train pred_heading',
+                #            opts=dict(
+                #                title='train pred_heading'))
                 vis.images([out_feature_gt_img, confidence_img],
                            win='train_confidencena',
                            opts=dict(
@@ -241,6 +263,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             avg_class_train_loss = class_train_loss / len(train_dataloader)
             avg_instance_train_loss = instance_train_loss / \
                 len(train_dataloader)
+            avg_heading_train_loss = heading_train_loss / len(train_dataloader)
             avg_height_train_loss = height_train_loss / len(train_dataloader)
         else:
             avg_train_loss = train_loss
@@ -248,6 +271,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             avg_category_train_loss = category_train_loss
             avg_class_train_loss = class_train_loss
             avg_instance_train_loss = instance_train_loss
+            avg_heading_train_loss = heading_train_loss
             avg_height_train_loss = height_train_loss
 
         vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
@@ -271,6 +295,14 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 [avg_instance_train_loss]),
             win='loss',
             name='avg_instance_train_loss',
+            update='append')
+        vis.line(
+            X=np.array(
+                [epo]),
+            Y=np.array(
+                [avg_heading_train_loss]),
+            win='loss',
+            name='avg_heading_train_loss',
             update='append')
         vis.line(
             X=np.array(
@@ -319,12 +351,12 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 optimizer.zero_grad()
                 output = bcnn_model(in_feature)
 
-                category_loss, confidence_loss, class_loss, instance_loss, height_loss\
+                category_loss, confidence_loss, class_loss, instance_loss, heading_loss, height_loss\
                     = criterion(output, in_feature, out_feature_gt, pos_weight, class_weight)
 
                 # loss_for_record = category_loss + confidence_loss + \
                 #                   class_loss + instance_loss + height_loss
-                loss_for_record = class_loss + instance_loss + height_loss
+                loss_for_record = class_loss + instance_loss + heading_loss + height_loss
                 iter_loss = loss_for_record.item()
                 test_loss += iter_loss
 
@@ -379,6 +411,22 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                                  non_empty_channle:non_empty_channle + 1,
                                  ...].cpu().detach().numpy().copy()
 
+                # pred_heading = output[0, 10:11, :, :]
+                # pred_heading_np = pred_heading.cpu().detach().numpy().copy()
+                # pred_heading_np = pred_heading_np.transpose(1, 2, 0)
+                # pred_heading_np = np.argmax(pred_heading_np, axis=2)[..., None]
+                # zero_60_idx = np.where(pred_heading_np[:, :, 0] < math.pi/2)
+                # # sixty_120_idx = np.where(
+                # #     math.pi/3 < pred_heading_np[:, :, 0]  < math.pi*2/3)
+                # one_hundred_twenty_180_idx = np.where(math.pi/2 <
+                #                                       pred_heading_np[:, :, 0])
+                # pred_heading_img = np.zeros((width, height, 3))
+                # pred_heading_img[zero_60_idx] = [255, 0, 0]
+                # # pred_heading_img[sixty_120_idx] = [0, 255, 0]
+                # pred_heading_img[one_hundred_twenty_180_idx] = [0, 0, 255]
+                # pred_heading_img = pred_heading_img.transpose(2, 0, 1)
+
+
                 if np.mod(index, vis_interval) == 0:
                     print('epoch {}, {}/{},test loss is {}'.format(
                         epo,
@@ -393,6 +441,10 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                                win='test_confidencena',
                                opts=dict(
                                    title='test confidence(GT, Pred)'))
+                    # vis.images(pred_heading_img,
+                    #            win='test pred_heading',
+                    #            opts=dict(
+                    #                title='test pred_heading'))
                     vis.images([label_img, pred_class_img],
                                win='test_class',
                                opts=dict(
@@ -425,6 +477,14 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 [avg_instance_train_loss]),
             win='loss',
             name='avg_instance_train_loss',
+            update='append')
+        vis.line(
+            X=np.array(
+                [epo]),
+            Y=np.array(
+                [avg_heading_train_loss]),
+            win='loss',
+            name='avg_heading_train_loss',
             update='append')
         vis.line(
             X=np.array(
