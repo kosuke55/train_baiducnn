@@ -182,51 +182,52 @@ def generate_out_feature(
             search_area_right_idx - 1, search_area_left_idx + 1):
         for j in range(
                 search_area_top_idx - 1, search_area_bottom_idx + 1):
+            if 0 <= i and i < size and 0 <= j and j < size:
+                # grid_center = np.array(
+                #     [grid_centers[i], grid_centers[j]])
+                grid_center_x = Pixel2pc(i, float(height), 70)
+                grid_center_y = Pixel2pc(j, float(width), 70)
 
-            # grid_center = np.array(
-            #     [grid_centers[i], grid_centers[j]])
-            grid_center_x = Pixel2pc(i, float(height), 70)
-            grid_center_y = Pixel2pc(j, float(width), 70)
+                p1 = box2d[0]
+                p_x = box2d[1]
+                p_y = box2d[3]
+                pi = p_x - p1
+                pj = p_y - p1
+                v = np.array([grid_center_x, grid_center_y]) - p1
+                iv = np.dot(pi, v)
+                jv = np.dot(pj, v)
+                mask_x = np.logical_and(0 <= iv, iv <= np.dot(pi, pi))
+                mask_y = np.logical_and(0 <= jv, jv <= np.dot(pj, pj))
+                mask = np.logical_and(mask_x, mask_y)
 
-            p1 = box2d[0]
-            p_x = box2d[1]
-            p_y = box2d[3]
-            pi = p_x - p1
-            pj = p_y - p1
-            v = np.array([grid_center_x, grid_center_y]) - p1
-            iv = np.dot(pi, v)
-            jv = np.dot(pj, v)
-            mask_x = np.logical_and(0 <= iv, iv <= np.dot(pi, pi))
-            mask_y = np.logical_and(0 <= jv, jv <= np.dot(pj, pj))
-            mask = np.logical_and(mask_x, mask_y)
+                # if mask:
+                #     out_feature[i, j, 0] = 1.  # category_pt
+                #     instance_pt = box2d_center - grid_center
+                #     out_feature[i, j, 1] = instance_pt[0]
+                #     out_feature[i, j, 2] = instance_pt[1]
 
-            # if mask:
-            #     out_feature[i, j, 0] = 1.  # category_pt
-            #     instance_pt = box2d_center - grid_center
-            #     out_feature[i, j, 1] = instance_pt[0]
-            #     out_feature[i, j, 2] = instance_pt[1]
+                #     out_feature[i, j, 3] = 1.  # confidence_pt
+                #     out_feature[i, j, 4] = label  # classify_pt
+                #     # if i - label_half_length >= 0 and \
+                #     #    i + label_half_length < width and \
+                #     #    j - label_half_length >= 0 and \
+                #     #    j + label_half_length < height:
+                #     #     out_feature[
+                #     #         i - label_half_length:i + label_half_length,
+                #     #         j - label_half_length:j + label_half_length,
+                #     #         4] = label  # classify_pt
+                #     out_feature[i, j, 5] = yaw  # heading_pt (unused)
+                #     out_feature[i, j, 6] = height_pt  # height_pt
 
-            #     out_feature[i, j, 3] = 1.  # confidence_pt
-            #     out_feature[i, j, 4] = label  # classify_pt
-            #     # if i - label_half_length >= 0 and \
-            #     #    i + label_half_length < width and \
-            #     #    j - label_half_length >= 0 and \
-            #     #    j + label_half_length < height:
-            #     #     out_feature[
-            #     #         i - label_half_length:i + label_half_length,
-            #     #         j - label_half_length:j + label_half_length,
-            #     #         4] = label  # classify_pt
-            #     out_feature[i, j, 5] = yaw  # heading_pt (unused)
-            #     out_feature[i, j, 6] = height_pt  # height_pt
-
-            if mask:
-                out_feature[i, j, 0] = 1.  # category_pt
-                out_feature[i, j, 1] = (box2d_center[0] - grid_center_x) * -1
-                out_feature[i, j, 2] = (box2d_center[1] - grid_center_y) * -1
-                out_feature[i, j, 3] = 1.  # confidence_pt
-                out_feature[i, j, 4] = label  # classify_pt
-                out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
-                out_feature[i, j, 6] = height_pt  # height_pt
+                if mask:
+                    # print("1", i, j, search_area_left_idx)
+                    out_feature[i, j, 0] = 1.  # category_pt
+                    out_feature[i, j, 1] = (box2d_center[0] - grid_center_x) * -1
+                    out_feature[i, j, 2] = (box2d_center[1] - grid_center_y) * -1
+                    out_feature[i, j, 3] = 1.  # confidence_pt
+                    out_feature[i, j, 4] = label  # classify_pt
+                    out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
+                    out_feature[i, j, 6] = height_pt  # height_pt
 
     return out_feature
 
