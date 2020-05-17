@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import math
 
 class BCNN(nn.Module):
     def __init__(self, in_channels=8, n_class=6):
@@ -111,7 +111,7 @@ class BCNN(nn.Module):
         instance_y = (torch.sigmoid(deconv0[:, 2:3, :, :]) - 0.5) * 20.
         confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
         pred_class = F.softmax(deconv0[:, 4:10, :, :])
-        heading = deconv0[:, 10:11, :, :]
+        heading = torch.sigmoid(deconv0[:, 10:11, :, :]) * math.pi
         height = torch.sigmoid(deconv0[:, 11:12, :, :]) * 5.
         # print(category)
         # print(instance_x)
