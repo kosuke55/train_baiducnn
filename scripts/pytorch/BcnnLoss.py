@@ -33,9 +33,9 @@ class BcnnLoss(Module):
 
         # heading_orig_diff = torch.abs((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...])) - 1)
         # heading_inv_diff = torch.abs((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...] + math.pi) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...] + math.pi)) - 1)
-        heading_orig_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 5, ...]) + torch.sin(
+        heading_orig_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(
             output[:, 10, ...]) * torch.sin(target[:, 5, ...])).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
-        heading_inv_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 5, ...] + math.pi) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 5, ...] + math.pi)).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
+        heading_inv_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...] + math.pi) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...] + math.pi)).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
         heading_diff = torch.min(heading_orig_diff, heading_inv_diff)
         heading_loss = torch.sum(
             weight * (heading_orig_diff ** 2) * (1.0 + alpha * input[:, 2:3, ...])) * 0.001
@@ -44,16 +44,8 @@ class BcnnLoss(Module):
         # height_loss = torch.sum(torch.abs(weight * height_diff* (1.0 + alpha * input[:, 2:3, ...]))) * 0.00075
         height_loss = torch.sum(weight * (height_diff ** 2) * (1.0 + alpha * input[:, 2:3, ...])) * 0.000075
 
-        # print(heading_loss)
-        # print(torch.isnan(heading_orig_diff).any())
-        # print(torch.isnan(heading_inv_diff).any())
-        # print(torch.isnan(heading_diff).any())
-        # print(torch.min(heading_diff))
-        # print(torch.max(heading_diff))
-        # print(torch.max(torch.abs(torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...]))))
-        # print(torch.acos(torch.max(torch.abs(torch.cos(output[:, 10, ...]) * torch.cos(target[:, 5, ...]) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 5, ...])))))
-        # print(torch.min(torch.abs(torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...]))))
-        # print(torch.acos(torch.min(torch.abs(torch.cos(output[:, 10, ...]) * torch.cos(target[:, 5, ...]) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 5, ...])))))
+        print("category_loss", float(category_loss))
+
 
         # print("category_loss", float(category_loss))
         # print("confidence_loss", float(confidence_loss))
