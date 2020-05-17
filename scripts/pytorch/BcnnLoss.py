@@ -38,13 +38,13 @@ class BcnnLoss(Module):
         heading_inv_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...] + math.pi) + torch.sin(output[:, 10, ...]) * torch.sin(target[:, 10, ...] + math.pi)).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
         heading_diff = torch.min(heading_orig_diff, heading_inv_diff)
         heading_loss = torch.sum(
-            weight * (heading_orig_diff ** 2) * (1.0 + alpha * input[:, 2:3, ...])) * 0.001
+            weight * (heading_diff ** 2) * (1.0 + alpha * input[:, 2:3, ...])) * 0.001
  
         height_diff = output[:, 11, ...] - target[:, 11, ...]
         # height_loss = torch.sum(torch.abs(weight * height_diff* (1.0 + alpha * input[:, 2:3, ...]))) * 0.00075
         height_loss = torch.sum(weight * (height_diff ** 2) * (1.0 + alpha * input[:, 2:3, ...])) * 0.000075
 
-        print("category_loss", float(category_loss))
+        # print("category_loss", float(category_loss))
 
 
         # print("category_loss", float(category_loss))
