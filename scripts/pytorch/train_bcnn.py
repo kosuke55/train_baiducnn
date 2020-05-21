@@ -50,7 +50,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 pretrained_model, md5='ccae5c31be9cee11c4a0f3089f21ac1e')
             bcnn_model.load_state_dict(torch.load(pretrained_model))
 
-    bcnn_model.eval()
+    bcnn_model.train()
     save_model_interval = 1
 
     transfer_learning = False
