@@ -25,8 +25,12 @@ class BcnnLoss(Module):
         instance_x_diff = output[:, 1, ...] - target[:, 1, ...]
         instance_y_diff = output[:, 2, ...] - target[:, 2, ...]
 
-        instance_loss = torch.sum(
-            torch.abs(instance_x_diff) * (1.0 + alpha * input[:, 2:3, ...]) + torch.abs(instance_y_diff) * (1.0 + alpha * input[:, 2:3, ...])) * 0.00015
+        # instance_loss = torch.sum(
+        #     torch.abs(instance_x_diff) * (1.0 + alpha * input[:, 2:3, ...]) + torch.abs(instance_y_diff) * (1.0 + alpha * input[:, 2:3, ...])) * 0.00015
+        instance_x_loss = torch.sum(
+            instance_x_diff**2 * (1.0 + alpha * input[:, 2:3, ...])) * 0.0005
+        instance_y_loss = torch.sum(
+            instance_y_diff**2 * (1.0 + alpha * input[:, 2:3, ...])) * 0.0005
 
         heading_orig_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(
             output[:, 10, ...]) * torch.sin(target[:, 5, ...])).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
@@ -42,8 +46,11 @@ class BcnnLoss(Module):
         print("category_loss", float(category_loss))
         print("confidence_loss", float(confidence_loss))
         print("class_loss", float(class_loss))
-        print("instace_loss ", float(instance_loss))
+        # print("instace_loss ", float(instance_loss))
+        print("instace_x_loss ", float(instance_x_loss))
+        print("instace_y_loss ", float(instance_y_loss))
         print("heading_loss ", float(heading_loss))
         print("height_loss ", float(height_loss))
 
-        return category_loss, confidence_loss, class_loss, instance_loss, heading_loss, height_loss
+        # return category_loss, confidence_loss, class_loss, instance_loss, heading_loss, height_loss
+        return category_loss, confidence_loss, class_loss, instance_x_loss, instance_y_loss, heading_loss, height_loss
