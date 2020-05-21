@@ -87,10 +87,10 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
             class_weight = out_feature_gt.detach().numpy().copy()
             class_weight = class_weight[:, 4:5, ...]
-            object_idx = np.where(class_weight != 0)
-            nonobject_idx = np.where(class_weight == 0)
-            class_weight[object_idx] = 0.01 ** 2
-            class_weight[nonobject_idx] = 1.
+            object_idx = np.where(class_weight == 0)
+            nonobject_idx = np.where(class_weight != 0)
+            class_weight[object_idx] = 1.
+            class_weight[nonobject_idx] = 0.01 ** 2
             class_weight = np.concatenate(
                 [class_weight,
                  class_weight,
@@ -240,10 +240,10 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
                 class_weight = out_feature_gt.detach().numpy().copy()
                 class_weight = class_weight[:, 4:5, ...]
-                object_idx = np.where(class_weight != 0)
-                nonobject_idx = np.where(class_weight == 0)
-                class_weight[object_idx] = 0.01 ** 2
-                class_weight[nonobject_idx] = 1.
+                object_idx = np.where(class_weight == 0)
+                nonobject_idx = np.where(class_weight != 0)
+                class_weight[object_idx] = 1.
+                class_weight[nonobject_idx] = 0.01 ** 2
                 class_weight = np.concatenate(
                     [class_weight,
                      class_weight,
@@ -386,7 +386,7 @@ if __name__ == "__main__":
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model',
-                        default='checkpoints/672_6c.pt')
+                        default='checkpoints/mini_672_6c_0510.pt')
     parser.add_argument('--train_data_num', '-tr', type=int,
                         help='How much data to use for training',
                         default=1000000)
