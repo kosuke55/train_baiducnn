@@ -43,7 +43,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         bcnn_model.load_state_dict(torch.load(pretrained_model))
     else:
         print('Not found ', pretrained_model)
-        if pretrained_model == 'checkpoints/672_6c.pt':
+        if pretrained_model == 'checkpoints/mini_672_6c.pt':
             print('Downloading ', pretrained_model)
             gdown.cached_download(
                 'https://drive.google.com/uc?export=download&id=1kSMxIGxzj4llXi10Ds75I5UZZTbp0koC',
@@ -386,7 +386,7 @@ if __name__ == "__main__":
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model',
-                        default='checkpoints/mini_672_6c_0510.pt')
+                        default='checkpoints/mini_672_6c.pt')
     parser.add_argument('--train_data_num', '-tr', type=int,
                         help='How much data to use for training',
                         default=1000000)
