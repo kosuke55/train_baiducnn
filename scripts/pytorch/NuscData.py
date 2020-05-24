@@ -50,7 +50,7 @@ class NuscDataset(Dataset):
 
         out_feature = np.load(
             os.path.join(self.data_path, "out_feature/", data_name))
-        one_hot_class = onehot(out_feature[..., 4].astype(np.int8), 6)
+        one_hot_class = onehot(out_feature[..., 4].astype(np.int8), 5)
 
         out_feature = np.concatenate(
             [out_feature[..., 0:4],

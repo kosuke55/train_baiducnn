@@ -36,7 +36,7 @@ if __name__ == "__main__":
                         default=6)
     args = parser.parse_args()
 
-    bcnn_model = BCNN(in_channels=args.channel, n_class=6)
+    bcnn_model = BCNN(in_channels=args.channel, n_class=5)
     # load it
     state_dict = torch.load(args.trained_model)
     bcnn_model.load_state_dict(fix_model_state_dict(state_dict))
