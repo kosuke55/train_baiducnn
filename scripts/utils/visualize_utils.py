@@ -284,7 +284,6 @@ def visualize_model():
 
 
 if __name__ == '__main__':
-
     # viz_in_feature(
     #     data_path='data/non_empty.npy',
     #     width=672, height=672, grid_range=70)
@@ -309,5 +308,4 @@ if __name__ == '__main__':
         # inference_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00001.npy',
         width=672, height=672, grid_range=70.,
         draw_instance_pt=True, draw_heading_pt=False)
-
     # visualize_model()
