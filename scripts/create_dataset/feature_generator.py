@@ -7,7 +7,8 @@ import numpy as np
 
 
 def F2I(val, orig, scale):
-    return int(math.floor((orig - val) * scale))
+    # return int(np.floor((orig - val) * scale))
+    return np.floor((orig - val) * scale).astype(np.uint8)
 
 
 def Pixel2pc(in_pixel, in_size, out_range):
