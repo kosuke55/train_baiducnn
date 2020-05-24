@@ -2,23 +2,28 @@
 # coding: utf-8
 
 import argparse
+import math
 import os
 import sys
-for path in sys.path:
-    if 'opt/ros/' in path:
-        print('sys.path.remove({})'.format(path))
-        sys.path.remove(path)
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import numba
 import numpy as np
-from nuscenes.nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud
 
 import feature_generator as fg
 
-import math
+try:
+    from nuscenes.nuscenes import NuScenes
+    from nuscenes.utils.data_classes import LidarPointCloud
+except ImportError:
+    for path in sys.path:
+        if '/opt/ros/' in path:
+            print('sys.path.remove({})'.format(path))
+            sys.path.remove(path)
+            from nuscenes.nuscenes import NuScenes
+            from nuscenes.utils.data_classes import LidarPointCloud
+            sys.path.append(path)
+            break
+
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
@@ -161,8 +166,8 @@ def generate_out_feature(
 
     inv_res = 0.5 * width / 70.
     res = 1.0 / inv_res
-    max_length = abs(2*res)
- 
+    max_length = abs(2 * res)
+
     search_area_left_idx = F2I(box2d_left, 70, inv_res)
     search_area_right_idx = F2I(box2d_right, 70, inv_res)
     search_area_top_idx = F2I(box2d_top, 70, inv_res)
@@ -209,10 +214,8 @@ def generate_out_feature(
                 # normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
                 # while normalized_yaw < -pi/2.0 :
                 #     normalized_yaw = normalized_yaw + pi
-                    
                 # while pi/2.0 < normalized_yaw :
                 #     normalized_yaw = normalized_yaw - pi
-
 
                 if mask:
                     # print("1", i, j, search_area_left_idx)
