@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import math
 
 class BCNN(nn.Module):
-    def __init__(self, in_channels=8, n_class=6):
+    def __init__(self, in_channels=8, n_class=5):
         super().__init__()
         self.n_class = n_class
         self.relu = nn.LeakyReLU(inplace=True)
@@ -74,7 +74,7 @@ class BCNN(nn.Module):
             96, 48, kernel_size=3, stride=1, padding=1)
 
         self.deconv0 = nn.ConvTranspose2d(
-            48, n_class + 6, kernel_size=4, stride=2, padding=1)
+            48, n_class + 7, kernel_size=4, stride=2, padding=1)
 
     def forward(self, x):
         # conv
@@ -107,12 +107,13 @@ class BCNN(nn.Module):
         deconv0 = self.deconv0(deconv1_1)
 
         category = torch.sigmoid(deconv0[:, 0:1, :, :])
-        instance_x = (torch.sigmoid(deconv0[:, 1:2, :, :]) - 0.5) * 1.178
-        instance_y = (torch.sigmoid(deconv0[:, 2:3, :, :]) - 0.5) * 1.178
+        instance_x = deconv0[:, 1:2, :, :]
+        instance_y = deconv0[:, 2:3, :, :]
         confidence = torch.sigmoid(deconv0[:, 3:4, :, :])
-        pred_class = F.softmax(deconv0[:, 4:10, :, :])
-        heading = torch.sigmoid(deconv0[:, 10:11, :, :]) * math.pi
-        height = torch.sigmoid(deconv0[:, 11:12, :, :]) * 5.
+        pred_class = F.softmax(deconv0[:, 4:9, :, :])
+        heading_x = deconv0[:, 9:10, :, :]
+        heading_y = deconv0[:, 10:11, :, :]
+        height = deconv0[:, 11:12, :, :]
         # print(category)
         # print(instance_x)
         # print(instance_y)
@@ -122,7 +123,7 @@ class BCNN(nn.Module):
         # print(height)
         output = torch.cat(
             [category, instance_x, instance_y, confidence,
-             pred_class, heading, height], dim=1)
+             pred_class, heading_x, heading_y, height], dim=1)
 
         return output
 
