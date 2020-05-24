@@ -114,8 +114,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             category_weight = category_weight[:, 3, ...]
             object_idx = np.where(category_weight == 0)
             nonobject_idx = np.where(category_weight != 0)
-            category_weight[object_idx] = 1.0
-            category_weight[nonobject_idx] = 10.0
+            category_weight[object_idx] = 10.0
+            category_weight[nonobject_idx] = 1.0
             category_weight = torch.from_numpy(category_weight)
             category_weight = category_weight.to(device)
 
@@ -124,8 +124,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             confidence_weight = confidence_weight[:, 3, ...]
             object_idx = np.where(confidence_weight == 0)
             nonobject_idx = np.where(confidence_weight != 0)
-            confidence_weight[object_idx] = 10.0
-            confidence_weight[nonobject_idx] = 1.0
+            confidence_weight[object_idx] = 1.0
+            confidence_weight[nonobject_idx] = 10.0
             confidence_weight = torch.from_numpy(confidence_weight)
             confidence_weight = confidence_weight.to(device)
 
@@ -352,8 +352,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 category_weight = category_weight[:, 3, ...]
                 object_idx = np.where(category_weight == 0)
                 nonobject_idx = np.where(category_weight != 0)
-                category_weight[object_idx] = 1.0
-                category_weight[nonobject_idx] = 10.0
+                category_weight[object_idx] = 10.0
+                category_weight[nonobject_idx] = 1.0
                 category_weight = torch.from_numpy(category_weight)
                 category_weight = category_weight.to(device)
 
@@ -362,8 +362,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 confidence_weight = confidence_weight[:, 3, ...]
                 object_idx = np.where(confidence_weight == 0)
                 nonobject_idx = np.where(confidence_weight != 0)
-                confidence_weight[object_idx] = 10.0
-                confidence_weight[nonobject_idx] = 1.0
+                confidence_weight[object_idx] = 1.0
+                confidence_weight[nonobject_idx] = 10.0
                 confidence_weight = torch.from_numpy(confidence_weight)
                 confidence_weight = confidence_weight.to(device)
 
