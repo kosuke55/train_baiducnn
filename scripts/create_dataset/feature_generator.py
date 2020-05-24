@@ -15,7 +15,7 @@ def Pixel2pc(in_pixel, in_size, out_range):
     return out_range - (in_pixel + 0.5) * res
 
 
-class Feature_generator():
+class FeatureGenerator():
     def __init__(self, grid_range, width, height,
                  use_constant_feature, use_intensity_feature):
         self.range = grid_range

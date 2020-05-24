@@ -107,9 +107,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                                          box2d, box2d_center, height_pt,
                                          label, label_half_length, yaw,
                                          out_feature)
-                    # import pdb; pdb.set_trace()
                 out_feature = out_feature.astype(np.float16)
-                feature_generator = fg.Feature_generator(
+                feature_generator = fg.FeatureGenerator(
                     grid_range, width, height,
                     use_constant_feature, use_intensity_feature)
                 feature_generator.generate(pc.points.T)
@@ -209,7 +208,7 @@ def generate_out_feature(
                 else:
                     y_scale = 1.
 
-                normalized_yaw =  math.atan(math.sin(yaw)/ math.cos(yaw))
+                normalized_yaw = math.atan(math.sin(yaw) / math.cos(yaw))
 
                 # normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
                 # while normalized_yaw < -pi/2.0 :
