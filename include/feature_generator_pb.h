@@ -17,22 +17,19 @@
 #ifndef FEATURE_GENERATOR_H
 #define FEATURE_GENERATOR_H
 
-#include "util.h"
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/numpy.h>
+#include "util.h"
 
 class FeatureGenerator {
  private:
-  int width_ = 640;
-  int height_ = 640;
-  int range_ = 0;
+  int width_ = 672;
+  int height_ = 672;
+  int range_ = 70;
 
   float min_height_ = 0.0;
   float max_height_ = 0.0;
-
-  // bool use_constant_feature_ = false;
-  // bool use_intensity_feature_ = true;
 
   std::vector<float> log_table_;
   std::vector<float> in_feature_;
@@ -43,10 +40,8 @@ class FeatureGenerator {
 
  public:
   FeatureGenerator(int range, int width, int height);
-                   // const bool use_constant_feature, const bool use_intensity_feature);  
   ~FeatureGenerator() {}
-  std::vector<float> generate(const pybind11::array_t<float> points,
-                              const bool use_constant_feature,
+  std::vector<float> generate(const pybind11::array_t<float> points, const bool use_constant_feature,
                               const bool use_intensity_feature);
 };
 
