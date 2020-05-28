@@ -157,7 +157,7 @@ def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, 
                    end_id=None):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    bcnn_model = BCNN(in_channels=6, n_class=6).to(device)
+    bcnn_model = BCNN(in_channels=6, n_class=5).to(device)
     # bcnn_model = torch.nn.DataParallel(bcnn_model)  # multi gpu
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
@@ -350,28 +350,30 @@ def generate_out_feature(
                 mask_y = np.logical_and(0 <= jv, jv <= np.dot(pj, pj))
                 mask = np.logical_and(mask_x, mask_y)
 
-                if abs(box2d_center[0] - grid_center_x) < max_length:
-                    x_scale = max_length/abs(box2d_center[0] - grid_center_x)
+                if max_length < abs(box2d_center[0] - grid_center_x):
+                    x_scale = max_length / abs(box2d_center[0] - grid_center_x)
                 else:
                     x_scale = 1.
-                if abs(box2d_center[1] - grid_center_y) < max_length:
-                    y_scale = max_length/abs(box2d_center[1] - grid_center_y)
+                if max_length < abs(box2d_center[1] - grid_center_y):
+                    y_scale = max_length / abs(box2d_center[1] - grid_center_y)
                 else:
                     y_scale = 1.
 
-                normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
-                while normalized_yaw < -pi/2. :
-                    normalized_yaw += pi
+                normalized_yaw =  math.atan(math.sin(yaw)/ math.cos(yaw))
+
+                # normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
+                # while normalized_yaw < -pi/2.0 :
+                #     normalized_yaw = normalized_yaw + pi
                     
-                while pi/2. < normalized_yaw :
-                    normalized_yaw -= pi
+                # while pi/2.0 < normalized_yaw :
+                #     normalized_yaw = normalized_yaw - pi
 
 
                 if mask:
                     # print("1", i, j, search_area_left_idx)
                     out_feature[i, j, 0] = 1.  # category_pt
-                    out_feature[i, j, 1] = ((box2d_center[0] - grid_center_x) * -1)/min(x_scale, y_scale)
-                    out_feature[i, j, 2] = ((box2d_center[1] - grid_center_y) * -1)/min(x_scale, y_scale)
+                    out_feature[i, j, 1] = ((box2d_center[0] - grid_center_x) * -1) * min(x_scale, y_scale)
+                    out_feature[i, j, 2] = ((box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
                     out_feature[i, j, 3] = 1.  # confidence_pt
                     out_feature[i, j, 4] = label  # classify_pt
                     # out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
