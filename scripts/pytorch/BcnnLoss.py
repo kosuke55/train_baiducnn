@@ -14,7 +14,7 @@ class BcnnLoss(Module):
         gamma = 2.0
         alpha = 1.5
         category_diff = output[:, 0, ...] - target[:, 0, ...]
-        category_loss = torch.sum(category_weight * (category_diff ** 2)) * 0.005
+        category_loss = torch.sum(category_weight * (category_diff ** 2) * (0.5 + alpha * input[:, 2:3, ...])) * 0.005
 
         confidence_diff = output[:, 3, ...] - target[:, 3, ...]
         confidence_loss = torch.sum(confidence_weight * (confidence_diff ** 2)) * 0.005
@@ -48,7 +48,7 @@ class BcnnLoss(Module):
         #     torch.abs(heading_diff) * (1.0 + alpha * input[:, 2:3, ...])) * 0.001
  
         height_diff = output[:, 11, ...] - target[:, 11, ...]
-        height_loss = torch.sum(torch.abs(height_diff) * (1.0 + alpha * input[:, 2:3, ...])) * 0.0002
+        height_loss = torch.sum(torch.abs(height_diff) * (1.0 + alpha * input[:, 2:3, ...])) * 0.00005
 
 
         print("category_loss", float(category_loss))
