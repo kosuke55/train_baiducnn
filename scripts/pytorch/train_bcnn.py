@@ -91,7 +91,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         #     amsbound=False,
         # )
         # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
-        optimizer = optim.SGD(bcnn_model.parameters(), lr=2e-6, momentum=0.9, weight_decay=1e-5)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
@@ -138,8 +138,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             class_weight = np.concatenate(
                 [class_weight,
                  class_weight,
-                 class_weight * 7.0,  # bike
-                 class_weight * 5.0,  # pedestrian
+                 class_weight * 20.0,  # bike
+                 class_weight * 20.0,  # pedestrian
                  class_weight], axis=1)
             class_weight = torch.from_numpy(class_weight)
             class_weight = class_weight.to(device)
@@ -151,18 +151,18 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
             category_loss, confidence_loss, class_loss, instance_x_loss, instance_y_loss, heading_x_loss, heading_y_loss, height_loss\
                 = criterion(output, in_feature, out_feature_gt, category_weight, confidence_weight, class_weight)
-            if class_loss > 1000 :
-                print('loss function1')
-                loss = category_loss + confidence_loss + class_loss + height_loss
-            elif (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) /4.0 > 2000 :
-                print('loss function2')
-                loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 0.01 + height_loss
-            elif (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) /4.0 > 1000 :
-                print('loss function3')
-                loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 0.1 + height_loss
-            else :
-                print('loss function4')
-                loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 1.0 + height_loss
+            # if class_loss > 1000 :
+            #     print('loss function1')
+            #     loss = category_loss + confidence_loss + class_loss + height_loss
+            # elif (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) /4.0 > 2000 :
+            #     print('loss function2')
+            #     loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 0.01 + height_loss
+            # elif (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) /4.0 > 1000 :
+            #     print('loss function3')
+            #     loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 0.1 + height_loss
+            # else :
+            #     print('loss function4')
+            loss = category_loss + confidence_loss + class_loss + (instance_x_loss + instance_y_loss + heading_x_loss + heading_y_loss) * 1.0 + height_loss
             # category_loss, confidence_loss, class_loss, instance_loss, heading_loss, height_loss\
             #     = criterion(output, in_feature, out_feature_gt, category_weight, confidence_weight, class_weight)
             # loss = category_loss + confidence_loss + class_loss + instance_loss + heading_loss + height_loss
@@ -376,8 +376,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = np.concatenate(
                     [class_weight,
                      class_weight,
-                     class_weight * 7.0,  # bike
-                     class_weight * 5.0,  # pedestrian
+                     class_weight * 20.0,  # bike
+                     class_weight * 20.0,  # pedestrian
                      class_weight], axis=1)
                 class_weight = torch.from_numpy(class_weight)
                 class_weight = class_weight.to(device)
