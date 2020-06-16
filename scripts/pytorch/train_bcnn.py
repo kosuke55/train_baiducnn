@@ -138,8 +138,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
             class_weight = np.concatenate(
                 [class_weight,
                  class_weight,
-                 class_weight * 20.0,  # bike
-                 class_weight * 20.0,  # pedestrian
+                 class_weight * 15.0,  # bike
+                 class_weight * 15.0,  # pedestrian
                  class_weight], axis=1)
             class_weight = torch.from_numpy(class_weight)
             class_weight = class_weight.to(device)
@@ -376,8 +376,8 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 class_weight = np.concatenate(
                     [class_weight,
                      class_weight,
-                     class_weight * 20.0,  # bike
-                     class_weight * 20.0,  # pedestrian
+                     class_weight * 15.0,  # bike
+                     class_weight * 15.0,  # pedestrian
                      class_weight], axis=1)
                 class_weight = torch.from_numpy(class_weight)
                 class_weight = class_weight.to(device)

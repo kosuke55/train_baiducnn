@@ -81,21 +81,21 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                     if box.name.split('.')[1] == 'car':
                         label = 1
                     elif box.name.split('.')[1] == 'bus':
-                        label = 1
+                        label = 2
                     elif box.name.split('.')[1] == 'truck':
-                        label = 1
+                        label = 2
                     elif box.name.split('.')[1] == 'construction':
-                        label = 1
+                        label = 2
                     elif box.name.split('.')[1] == 'emergency':
-                        label = 1
+                        label = 2
                     elif box.name.split('.')[1] == 'trailer':
-                        label = 1
+                        label = 2
                     elif box.name.split('.')[1] == 'bicycle':
-                        label = 2
+                        label = 3
                     elif box.name.split('.')[1] == 'motorcycle':
-                        label = 2
+                        label = 3
                 elif box.name.split('.')[0] == 'human':
-                    label = 3
+                    label = 4
                 # elif box.name.split('.')[0] == 'movable_object':
                 #     label = 1
                 # elif box.name.split('.')[0] == 'static_object':
@@ -249,9 +249,11 @@ def generate_out_feature(
         return out_feature
     elif num_points < 4 and label == 1:
         return out_feature
-    elif num_points < 5 and label == 2:
+    elif num_points < 4 and label == 2:
         return out_feature
-    elif num_points < 2 and label == 3:
+    elif num_points < 4 and label == 3:
+        return out_feature
+    elif num_points < 4 and label == 4:
         return out_feature
 
     for i in range(
@@ -291,8 +293,10 @@ def generate_out_feature(
                     out_feature[i, j, 3] = 1.  # confidence_pt
                     out_feature[i, j, 4] = label  # classify_pt
                     # out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
-                    out_feature[i, j, 5] = -math.sin(normalized_yaw * 2.0)
-                    out_feature[i, j, 6] = -math.cos(normalized_yaw * 2.0)
+                    # out_feature[i, j, 5] = -math.sin(normalized_yaw * 2.0)
+                    # out_feature[i, j, 6] = -math.cos(normalized_yaw * 2.0)
+                    out_feature[i, j, 5] = math.cos(normalized_yaw * 2.0)
+                    out_feature[i, j, 6] = math.sin(normalized_yaw * 2.0)
                     out_feature[i, j, 7] = height_pt  # height_pt
 
     return out_feature

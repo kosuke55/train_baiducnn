@@ -149,8 +149,8 @@ def viz_out_feature(
                               y=grid_center[1],
                             #   dx=out_feature[i, j, 2],
                             #   dy=-out_feature[i, j, 1],
-                              dx=out_feature[i, j, 5],
-                              dy=-out_feature[i, j, 6],
+                              dx=out_feature[i, j, 6],
+                              dy=-out_feature[i, j, 5],
                               width=0.01,
                               head_width=0.05,
                               head_length=0.05,
@@ -234,7 +234,7 @@ def viz_inference_feature(
                 if in_feature[i, j, 5] == 1:
                     fill_grid(i, j, 'r')
                 # if inference_feature[0, 3, i, j] > 0.1:
-                if inference_feature[0, 0, i, j] > 0.5:
+                if inference_feature[0, 0, i, j] > 0.3:
                     instance_norms.append(
                         np.linalg.norm([inference_feature[0, 2, i, j], inference_feature[0, 1, i, j]]))
                     fill_grid(i, j, 'b')
@@ -296,16 +296,16 @@ if __name__ == '__main__':
     #     width=672, height=672, grid_range=70.,
     #     draw_instance_pt=True, draw_heading_pt=False)
 
-    # viz_inference_feature(
-    #     in_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/in_feature/00001.npy',
-    #     inference_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00001.npy',
-    #     width=672, height=672, grid_range=70.,
-    #     draw_instance_pt=True, draw_heading_pt=False)
-    viz_out_feature(
-        in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/in_feature/00001.npy',
-        out_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/out_feature/00001.npy',
-        # in_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/in_feature/00001.npy',
-        # inference_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00001.npy',
+    viz_inference_feature(
+        in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/in_feature/00006.npy',
+        inference_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00006.npy',
         width=672, height=672, grid_range=70.,
         draw_instance_pt=True, draw_heading_pt=False)
+    # viz_out_feature(
+    #     in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/in_feature/00001.npy',
+    #     out_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/out_feature/00001.npy',
+    #     # in_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/in_feature/00001.npy',
+    #     # inference_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00001.npy',
+    #     width=672, height=672, grid_range=70.,
+    #     draw_instance_pt=True, draw_heading_pt=False)
     # visualize_model()
