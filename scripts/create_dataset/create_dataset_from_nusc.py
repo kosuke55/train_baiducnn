@@ -115,7 +115,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 p1_reshape = box_corners
                 out_feature = generate_out_feature(width, height, size, grid_centers,
                                                    box_corners, box2d, box2d_center,
-                                                   pc.points.astype(np.float32), height_pt,
+                                                   pc.points.astype(
+                                                       np.float32), height_pt,
                                                    label, label_half_length, yaw, out_feature)
 
                 # generate_out_feature(width, height, size, grid_centers, pc.points,
@@ -131,10 +132,12 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
 
             feature_generator = fgpb.FeatureGenerator(
                 grid_range, width, height)
-            in_feature = feature_generator.generate(pc.points.T, use_constant_feature, use_intensity_feature)
+            in_feature = feature_generator.generate(
+                pc.points.T, use_constant_feature, use_intensity_feature)
             in_end = time.time()
 
-            print('time total {} out {} in {}'.format(in_end - start, out_end - start, in_end - out_end))
+            print('time total {} out {} in {}'.format(
+                in_end - start, out_end - start, in_end - out_end))
             if use_constant_feature and use_intensity_feature:
                 channels = 8
             elif use_constant_feature or use_intensity_feature:
@@ -142,7 +145,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             else:
                 channels = 4
 
-            in_feature = np.array(in_feature).reshape(channels, size, size).astype(np.float16)
+            in_feature = np.array(in_feature).reshape(
+                channels, size, size).astype(np.float16)
             in_feature = in_feature.transpose(1, 2, 0)
             # instance_pt is flipped due to flip
             # out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
@@ -267,11 +271,13 @@ def generate_out_feature(
                 grid_center_y = Pixel2pc(j, float(width), 70)
 
                 if max_length < np.abs(box2d_center[0] - grid_center_x):
-                    x_scale = max_length / np.abs(box2d_center[0] - grid_center_x)
+                    x_scale = max_length / \
+                        np.abs(box2d_center[0] - grid_center_x)
                 else:
                     x_scale = 1.
                 if max_length < np.abs(box2d_center[1] - grid_center_y):
-                    y_scale = max_length / np.abs(box2d_center[1] - grid_center_y)
+                    y_scale = max_length / \
+                        np.abs(box2d_center[1] - grid_center_y)
                 else:
                     y_scale = 1.
 
@@ -288,8 +294,10 @@ def generate_out_feature(
 
                 if mask:
                     out_feature[i, j, 0] = 1.  # category_pt
-                    out_feature[i, j, 1] = ((box2d_center[0] - grid_center_x) * -1) * min(x_scale, y_scale)
-                    out_feature[i, j, 2] = ((box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
+                    out_feature[i, j, 1] = (
+                        (box2d_center[0] - grid_center_x) * -1) * min(x_scale, y_scale)
+                    out_feature[i, j, 2] = (
+                        (box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
                     out_feature[i, j, 3] = 1.  # confidence_pt
                     out_feature[i, j, 4] = label  # classify_pt
                     # out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
