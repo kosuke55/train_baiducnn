@@ -68,7 +68,7 @@ def viz_feature(
     for i in range(height):
         for j in range(width):
             if in_feature[i, j, 5] == 1:
-            fill_grid(i, j, 'r')
+                fill_grid(i, j, 'r')
             if out_feature[i, j, 0] > 0.5:
                 instance_norms.append(
                     np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
