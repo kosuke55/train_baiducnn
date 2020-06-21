@@ -6,106 +6,39 @@ from __future__ import division
 
 import os
 import os.path as osp
+import math
 import sys
-for path in sys.path:
-    if 'opt/ros/' in path:
-        print('sys.path.remove({})'.format(path))
-        sys.path.remove(path)
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torchviz import make_dot
 
 sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
-from pytorch.BCNN import BCNN
+from pytorch.BCNN import BCNN  # noqa
+
+try:
+    import cv2
+except ImportError:
+    for path in sys.path:
+        if '/opt/ros/' in path:
+            print('sys.path.remove({})'.format(path))
+            sys.path.remove(path)
+            import cv2
+            sys.path.append(path)
+            break
 
 
-def viz_in_feature(
-        # data_path, idx=0, width=640, height=640, grid_range=60.,
-        # draw_instance_pt=False, draw_heading_pt=False):
-        data_path, width=672, height=672, grid_range=70.):
-
-    # data_name = os.listdir(os.path.join(data_path, 'in_feature'))[idx]
-    # in_feature = np.load(os.path.join(data_path, 'in_feature/', data_name))
-    # in_feature = np.load(data_path)
-
-    # non_empty_channel = 5
-    # non_empty_channel = in_feature[..., non_empty_channel].astype(np.uint8) * 255
-
-    nonempty = np.load(data_path)
-    print(nonempty.shape)
-    # cv2.imwrite("non_empty.png", non_empty)
-    # return
-
-    if width == height:
-        size = width
-    else:
-        raise Exception(
-            'Currently only supported if width and height are equal')
-
-    grid_length = 2. * grid_range / size
-    grid_ticks = np.arange(-grid_range, grid_range + grid_length, grid_length)
-
-    grid_centers = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
-
-    # def fill_grid(i, j, color):
-    #     grid_center = np.array([grid_centers[i], grid_centers[j]])
-    #     fill_area = np.array([[(grid_center[0] - grid_length / 2),
-    #                            (grid_center[0] + grid_length / 2),
-    #                            (grid_center[0] + grid_length / 2),
-    #                            (grid_center[0] - grid_length / 2)],
-    #                           [(grid_center[1] + grid_length / 2),
-    #                            (grid_center[1] + grid_length / 2),
-    #                            (grid_center[1] - grid_length / 2),
-    #                            (grid_center[1] - grid_length / 2)]])
-    #     plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
-
-    def fill_grid(i, j, color):
-        grid_center = np.array([grid_centers[j], -grid_centers[i]])
-        # grid_center = np.array([-grid_centers[i], grid_centers[j]])
-        # grid_center = np.array([grid_centers[i], grid_centers[j]])
-        fill_area = np.array([[(grid_center[0] - grid_length / 2),
-                               (grid_center[0] + grid_length / 2),
-                               (grid_center[0] + grid_length / 2),
-                               (grid_center[0] - grid_length / 2)],
-                              [(grid_center[1] + grid_length / 2),
-                               (grid_center[1] + grid_length / 2),
-                               (grid_center[1] - grid_length / 2),
-                               (grid_center[1] - grid_length / 2)]])
-        plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
-
-    for i in range(height):
-        for j in range(width):
-            # if in_feature[i, j, non_empty_channel] == 1:
-            # if in_feature[i, j, non_empty_channel] == 1:
-            if nonempty[i, j, 0] == 1:
-                fill_grid(i, j, 'r')
-
-    # for i in range(width):
-    #     for j in range(height):
-    #         if in_feature[i, j, non_empty_channle] == 1:
-    #             fill_grid(i, j, 'r')
-
-    plt.show()
-
-
-def viz_out_feature(
-        # data_path, width=672, height=672, grid_range=70.,
-        # draw_instance_pt=False, draw_heading_pt=False):
+def viz_feature(
         in_data, out_data, width=672, height=672, grid_range=70.,
-        draw_instance_pt=False, draw_heading_pt=False):
-
-    # data_name = os.listdir(os.path.join(data_path, 'in_feature'))[idx]
-    # in_feature = np.load(os.path.join(data_path, 'in_feature/', data_name))
-    # out_feature = np.load(os.path.join(data_path, 'out_feature/', data_name))
-    # out_feature = np.load(data_path)
+        draw_target='instance', use_cnpy_feature=True):
 
     in_feature = np.load(in_data)
     out_feature = np.load(out_data)
 
-    # print(out_feature.shape)
+    if use_cnpy_feature:
+        in_feature = in_feature.transpose(1, 2, 0)
+        out_feature = out_feature.transpose(1, 2, 0)
 
     if width == height:
         size = width
@@ -132,58 +65,46 @@ def viz_out_feature(
         plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
 
     instance_norms = []
-    if draw_instance_pt:
-        print('draw instance pt')
-        for i in range(height):
-            for j in range(width):
-                if in_feature[i, j, 5] == 1:
-                    fill_grid(i, j, 'r')
-                # if out_feature[i, j, 0] == 1:
-                if out_feature[i, j, 0] > 0.5:
-                    instance_norms.append(
-                        np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
-                    # print(np.linalg.norm([instance_pt_y[i, j, 0], instance_pt_x[i, j, 0]]))
-                    fill_grid(i, j, 'b')
-                    grid_center = np.array([grid_centers[j], -grid_centers[i]])
-                    plt.arrow(x=grid_center[0],
-                              y=grid_center[1],
-                            #   dx=out_feature[i, j, 2],
-                            #   dy=-out_feature[i, j, 1],
-                              dx=out_feature[i, j, 6],
-                              dy=-out_feature[i, j, 5],
-                              width=0.01,
-                              head_width=0.05,
-                              head_length=0.05,
-                              length_includes_head=True,
-                              color='k')
-        print('instance norm \nmean: {}\nmax: {}\nmin: {}'.format(np.mean(instance_norms),
-                                                                  np.max(instance_norms),
-                                                                  np.min(instance_norms)))
+    for i in range(height):
+        for j in range(width):
+            if in_feature[i, j, 5] == 1:
+            fill_grid(i, j, 'r')
+            if out_feature[i, j, 0] > 0.5:
+                instance_norms.append(
+                    np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
+                fill_grid(i, j, 'b')
+                grid_center = np.array([grid_centers[j], -grid_centers[i]])
+                if draw_target == 'instance':
+                    dx = out_feature[i, j, 2]
+                    dy = out_feature[i, j, 1]
+                elif draw_target == 'heading':
+                    if use_cnpy_feature:
+                        yaw = math.atan2(out_feature[i, j, 10],
+                                         out_feature[i, j, 9]) * 0.5
+                    else:
+                        yaw = math.atan2(out_feature[i, j, 6],
+                                         out_feature[i, j, 5]) * 0.5
+                    dx = math.sin(yaw)
+                    dy = math.cos(yaw)
+
+                plt.arrow(x=grid_center[0],
+                          y=grid_center[1],
+                          dx=dx,
+                          dy=-dy,
+                          width=0.01,
+                          head_width=0.05,
+                          head_length=0.05,
+                          length_includes_head=True,
+                          color='k')
+    print('instance norm \nmean: {}\nmax: {}\nmin: {}'.format(np.mean(instance_norms),
+                                                              np.max(
+                                                                  instance_norms),
+                                                              np.min(instance_norms)))
+
+    plt.savefig("viz_feature_low.png", format="png")
+    plt.savefig("viz_feature.png", format="png", dpi=3000)
     plt.show()
 
-    # if draw_heading_pt:
-    #     for i in range(height):
-    #         for j in range(width):
-    #             # if in_feature[i, j, 5] == 1:
-    #             #     fill_grid(i, j, 'r')
-    #             # if out_feature[i, j, 0] == 1:
-    #             if category_pt[i, j, 0] == 1:
-    #                 fill_grid(i, j, 'b')
-    #                 grid_center = np.array([grid_centers[j], -grid_centers[i]])
-    #                 heading_pt = out_feature[i, j, 6]
-    #                 dx = -1.0 * np.cos(heading_pt)
-    #                 dy = 1.0 * np.sin(heading_pt)
-    #                 plt.arrow(x=grid_center[0],
-    #                           y=grid_center[1],
-    #                           dx=dx,
-    #                           dy=-dy,
-    #                           width=0.01,
-    #                           head_width=0.05,
-    #                           head_length=0.05,
-    #                           length_includes_head=True,
-    #                           color='k')
-
-    # plt.show()
 
 def viz_inference_feature(
         # data_path, width=672, height=672, grid_range=70.,
@@ -191,16 +112,8 @@ def viz_inference_feature(
         in_data, inference_data, width=672, height=672, grid_range=70.,
         draw_instance_pt=False, draw_heading_pt=False):
 
-    # data_name = os.listdir(os.path.join(data_path, 'in_feature'))[idx]
-    # in_feature = np.load(os.path.join(data_path, 'in_feature/', data_name))
-    # out_feature = np.load(os.path.join(data_path, 'out_feature/', data_name))
-    # out_feature = np.load(data_path)
-
     in_feature = np.load(in_data)
     inference_feature = np.load(inference_data)
-    print(inference_feature.shape)
-
-    # print(out_feature.shape)
 
     if width == height:
         size = width
@@ -234,43 +147,34 @@ def viz_inference_feature(
                 if in_feature[i, j, 5] == 1:
                     fill_grid(i, j, 'r')
                 # if inference_feature[0, 3, i, j] > 0.1:
+                # if inference_feature[0, 0, i, j] > 0.3:
                 if inference_feature[0, 0, i, j] > 0.3:
                     instance_norms.append(
                         np.linalg.norm([inference_feature[0, 2, i, j], inference_feature[0, 1, i, j]]))
                     fill_grid(i, j, 'b')
                     grid_center = np.array([grid_centers[j], -grid_centers[i]])
 
+                    yaw = math.atan2(inference_feature[0, 6, i, j],
+                                     inference_feature[0, 5, i, j]) * 0.5
+
                     # instance
                     plt.arrow(x=grid_center[0],
                               y=grid_center[1],
-                              dx=inference_feature[0, 2, i, j],
-                              dy=-inference_feature[0, 1, i, j],
+                              #   dx=inference_feature[0, 2, i, j],
+                              #   dy=-inference_feature[0, 1, i, j],
+                              dx=math.sin(yaw),
+                              dy=-math.cos(yaw),
                               width=0.01,
                               head_width=0.05,
                               head_length=0.05,
                               length_includes_head=True,
                               color='k')
 
-                    # heading
-                    # heading_pt = inference_feature[0, 10, i, j]
-                    # plt.arrow(x=grid_center[0],
-                    #           y=grid_center[1],
-                    #           dx=-1.0 * np.cos(heading_pt),
-                    #           dy=1.0 * np.sin(heading_pt),
-                    #           width=0.01,
-                    #           head_width=0.05,
-                    #           head_length=0.05,
-                    #           length_includes_head=True,
-                    #           color='k')
-                # if inference_feature[0, 3, i, j] > 0.1:
-                #     fill_grid(i, j, 'g')
-
-
         print('instance norm \nmean: {}\nmax: {}\nmin: {}'.format(np.mean(instance_norms),
-                                                                  np.max(instance_norms),
+                                                                  np.max(
+                                                                      instance_norms),
                                                                   np.min(instance_norms)))
     plt.show()
-
 
 
 def visualize_model():
@@ -284,28 +188,20 @@ def visualize_model():
 
 
 if __name__ == '__main__':
-    # viz_in_feature(
-    #     data_path='data/non_empty.npy',
-    #     width=672, height=672, grid_range=70)
 
-    # viz_out_feature(
-    #     nonempty='data/non_empty.npy',
-    #     category_pt='data/category_pt.npy',
-    #     instance_pt_x='data/instance_pt_x.npy',
-    #     instance_pt_y='data/instance_pt_y.npy',
+    # viz_inference_feature(
+    #     in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/in_feature/00006.npy',
+    #     inference_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00006.npy',
     #     width=672, height=672, grid_range=70.,
     #     draw_instance_pt=True, draw_heading_pt=False)
 
-    viz_inference_feature(
-        in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/in_feature/00006.npy',
-        inference_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00006.npy',
+    viz_feature(
+        in_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/in_feature_0.npy',
+        out_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/out_feature_0.npy',
+        # in_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/in_feature/00000.npy',
+        # out_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/inference_feature/00000.npy',
+        # out_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/out_feature/00000.npy',
         width=672, height=672, grid_range=70.,
-        draw_instance_pt=True, draw_heading_pt=False)
-    # viz_out_feature(
-    #     in_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/in_feature/00001.npy',
-    #     out_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-trainval_dataset/mini-6c-672_yaw/out_feature/00001.npy',
-    #     # in_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/in_feature/00001.npy',
-    #     # inference_data='/media/yukihiro/46A198F14D7268D1/nuscenes_dataset/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00001.npy',
-    #     width=672, height=672, grid_range=70.,
-    #     draw_instance_pt=True, draw_heading_pt=False)
-    # visualize_model()
+        # draw_target='instance',
+        draw_target='heading',
+        use_cnpy_feature=True)
