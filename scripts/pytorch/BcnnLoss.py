@@ -37,16 +37,16 @@ class BcnnLoss(Module):
                                  (target[:, 4:9, ...] * torch.log(output[:, 4:9, ...] + 1e-7)) * alpha +
                                  ((output[:, 4:9, ...]) ** gamma) *
                                  ((1.0 - target[:, 4:9, ...]) * torch.log(1.0 - output[:, 4:9, ...] + 1e-7)) * (1.0 - alpha))
-                                * (1.0 + beta * input[:, 2:3, ...])) * 0.01
+                                * (1.0 + beta * input[:, 2:3, ...])) * 0.015
 
         instance_x_diff = output[:, 1, ...] - target[:, 1, ...]
         instance_y_diff = output[:, 2, ...] - target[:, 2, ...]
         instance_x_loss = torch.sum(
             torch.where(instance_x_diff <= sigma, 0.5 * (instance_x_diff**2), 
-            sigma * torch.abs(instance_x_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.3
+            sigma * torch.abs(instance_x_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.6
         instance_y_loss = torch.sum(
             torch.where(instance_y_diff <= sigma, 0.5 * (instance_y_diff**2), 
-            sigma * torch.abs(instance_y_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.3
+            sigma * torch.abs(instance_y_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.6
         # instance_x_loss = torch.sum(
         #     instance_x_diff**2 * (1.0 + beta * input[:, 2:3, ...])) * 0.0045
         # instance_y_loss = torch.sum(
@@ -56,10 +56,10 @@ class BcnnLoss(Module):
         heading_y_diff = output[:, 10, ...] - target[:, 10, ...]
         heading_x_loss = torch.sum(
             torch.where(heading_x_diff <= sigma, 0.5 * (heading_x_diff**2), 
-            sigma * torch.abs(heading_x_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.3
+            sigma * torch.abs(heading_x_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.6
         heading_y_loss = torch.sum(
             torch.where(heading_y_diff <= sigma, 0.5 * (heading_y_diff**2), 
-            sigma * torch.abs(heading_y_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.3
+            sigma * torch.abs(heading_y_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.6
 
         # heading_orig_diff = torch.abs(torch.acos((torch.cos(output[:, 10, ...]) * torch.cos(target[:, 10, ...]) + torch.sin(
         #     output[:, 10, ...]) * torch.sin(target[:, 5, ...])).clamp(min=-1 + 1e-7, max=1 - 1e-7)))
@@ -71,7 +71,7 @@ class BcnnLoss(Module):
         height_diff = output[:, 11, ...] - target[:, 11, ...]
         height_loss = torch.sum(
             torch.where(height_diff <= sigma, 0.5 * (height_diff**2),
-                        sigma * torch.abs(height_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.01
+                        sigma * torch.abs(height_diff) - 0.5 * (sigma ** 2)) * target[:, 0, ...]) * 0.02
 
         print("category_loss", float(category_loss))
         print("confidence_loss", float(confidence_loss))

@@ -91,7 +91,7 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         #     amsbound=False,
         # )
         # optimizer = optim.Adam(bcnn_model.parameters(), lr=1e-3)
-        optimizer = optim.SGD(bcnn_model.parameters(), lr=1e-6, momentum=0.9, weight_decay=1e-5)
+        optimizer = optim.SGD(bcnn_model.parameters(), lr=2e-6, momentum=0.5, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda epo: 0.9 ** epo)
 
     prev_time = datetime.now()
@@ -343,6 +343,16 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
         scheduler.step()
 
         test_loss = 0
+        category_test_loss = 0
+        confidence_test_loss = 0
+        class_test_loss = 0
+        # instance_test_loss = 0
+        instance_x_test_loss = 0
+        instance_y_test_loss = 0
+        # heading_test_loss = 0
+        heading_x_test_loss = 0
+        heading_y_test_loss = 0
+        height_test_loss = 0
         bcnn_model.eval()
         with torch.no_grad():
             for index, (in_feature, out_feature_gt) in enumerate(
@@ -400,6 +410,15 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
                 # loss_for_record = class_loss + instance_loss + heading_loss + height_loss
                 iter_loss = loss_for_record.item()
                 test_loss += iter_loss
+                category_test_loss += category_loss.item()
+                confidence_test_loss += confidence_loss.item()
+                class_test_loss += class_loss.item()
+                # instance_test_loss += instance_loss.item()
+                instance_x_test_loss += instance_x_loss.item()
+                instance_y_test_loss += instance_y_loss.item()
+                heading_x_test_loss += heading_x_loss.item()
+                heading_y_test_loss += heading_y_loss.item()
+                height_test_loss += height_loss.item()
 
                 # category
                 category = output[0, 0:1, :, :]
@@ -511,11 +530,53 @@ def train(data_path, batch_size, max_epoch, pretrained_model,
 
             if len(test_dataloader) > 0:
                 avg_test_loss = test_loss / len(test_dataloader)
+                avg_confidence_test_loss = confidence_test_loss / \
+                    len(test_dataloader)
+                avg_category_test_loss = category_test_loss / \
+                    len(test_dataloader)
+                avg_class_test_loss = class_test_loss / len(test_dataloader)
+                # avg_instance_test_loss = instance_test_loss / \
+                #     len(test_dataloader)
+                avg_instance_x_test_loss = instance_x_test_loss / \
+                    len(test_dataloader)
+                avg_instance_y_test_loss = instance_y_test_loss / \
+                    len(test_dataloader)
+                avg_heading_x_test_loss = heading_x_test_loss / len(test_dataloader)
+                avg_heading_y_test_loss = heading_y_test_loss / len(test_dataloader)
+                avg_height_test_loss = height_test_loss / len(test_dataloader)
             else:
                 avg_test_loss = test_loss
+                avg_confidence_test_loss = confidence_test_loss
+                avg_category_test_loss = category_test_loss
+                avg_class_test_loss = class_test_loss
+                # avg_instance_test_loss = instance_test_loss
+                avg_instance_x_test_loss = instance_x_test_loss
+                avg_instance_y_test_loss = instance_y_test_loss
+                avg_heading_x_test_loss = heading_x_test_loss
+                avg_heading_y_test_loss = heading_y_test_loss
+                avg_height_test_loss = height_test_loss
 
         vis.line(X=np.array([epo]), Y=np.array([avg_test_loss]), win='loss',
                  name='avg_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_category_test_loss]), win='loss',
+                 name='avg_category_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_confidence_test_loss]), win='loss',
+                 name='avg_confidence_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_class_test_loss]), win='loss',
+                 name='avg_class_test_loss', update='append')
+        # vis.line(X=np.array([epo]), Y=np.array([avg_instance_test_loss]), win='loss',
+        #          name='avg_instance_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_instance_x_test_loss]), win='loss',
+                 name='avg_instance_x_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_instance_y_test_loss]), win='loss',
+                 name='avg_instance_y_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_heading_x_test_loss]), win='loss',
+                 name='avg_heading_x_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_heading_y_test_loss]), win='loss',
+                 name='avg_heading_y_test_loss', update='append')
+        vis.line(X=np.array([epo]), Y=np.array([avg_height_test_loss]), win='loss',
+                 name='avg_height_test_loss', update='append')
+
         vis.line(X=np.array([epo]), Y=np.array([avg_train_loss]), win='loss',
                  name='avg_train_loss', update='append')
         vis.line(X=np.array([epo]), Y=np.array([avg_category_train_loss]), win='loss',
