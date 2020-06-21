@@ -4,24 +4,32 @@
 import argparse
 import os
 import sys
-for path in sys.path:
-    if 'opt/ros/' in path:
-        print('sys.path.remove({})'.format(path))
-        sys.path.remove(path)
+import math
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numba
 import numpy as np
-from nuscenes.nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud
-
 import torch
-from BCNN import BCNN
 from collections import OrderedDict
 from torchvision import transforms
 
-import math
+import feature_generator_pb as fgpb
+from BCNN import BCNN
+
+try:
+    from nuscenes.nuscenes import NuScenes
+    from nuscenes.utils.data_classes import LidarPointCloud
+except ImportError:
+    for path in sys.path:
+        if '/opt/ros/' in path:
+            print('sys.path.remove({})'.format(path))
+            sys.path.remove(path)
+            from nuscenes.nuscenes import NuScenes
+            from nuscenes.utils.data_classes import LidarPointCloud
+            sys.path.append(path)
+            break
+
 
 def F2I(val, orig, scale):
     return int(math.floor((orig - val) * scale))
@@ -151,6 +159,7 @@ def fix_model_state_dict(state_dict):
         new_state_dict[name] = v
     return new_state_dict
 
+
 def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
                    use_constant_feature=True, use_intensity_feature=True,
@@ -161,11 +170,12 @@ def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, 
     # bcnn_model = torch.nn.DataParallel(bcnn_model)  # multi gpu
     if os.path.exists(pretrained_model):
         print('Use pretrained model')
-        bcnn_model.load_state_dict(fix_model_state_dict(torch.load(pretrained_model)))
+        bcnn_model.load_state_dict(
+            fix_model_state_dict(torch.load(pretrained_model)))
         bcnn_model.eval()
     else:
         return
-    
+
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'inference_feature'), exist_ok=True)
@@ -244,22 +254,28 @@ def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, 
                                      box2d, box2d_center, height_pt,
                                      label, label_half_length, yaw,
                                      out_feature)
-                # import pdb; pdb.set_trace()
+
             out_feature = out_feature.astype(np.float16)
-            in_feature_generator = Feature_generator(
-                grid_range, width, height,
-                use_constant_feature, use_intensity_feature)
-            in_feature_generator.generate(pc.points.T)
-            in_feature = in_feature_generator.feature
+            # in_feature_generator = Feature_generator(
+            #     grid_range, width, height,
+            #     use_constant_feature, use_intensity_feature)
+            # in_feature_generator.generate(pc.points.T)
+            feature_generator = fgpb.FeatureGenerator(
+                grid_range, width, height)
+            in_feature = feature_generator.generate(
+                pc.points.T, use_constant_feature, use_intensity_feature)
+
             if use_constant_feature and use_intensity_feature:
-                in_feature = in_feature.reshape(size, size, 8)
+                channels = 8
             elif use_constant_feature or use_intensity_feature:
-                in_feature = in_feature.reshape(size, size, 6)
+                channels = 6
             else:
-                in_feature = in_feature.reshape(size, size, 4)
-            # instance_pt is flipped due to flip
-            # out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
-            # out_feature[:, :, 1:3] *= -1
+                channels = 4
+
+            in_feature = np.array(in_feature).reshape(
+                channels, size, size).astype(np.float16)
+            in_feature = in_feature.transpose(1, 2, 0)
+
             np.save(os.path.join(
                 save_dir, 'in_feature/{:05}'.format(data_id)),
                 in_feature)
@@ -267,8 +283,6 @@ def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, 
                 save_dir, 'out_feature/{:05}'.format(data_id)),
                 out_feature)
 
-            # inference feature
-            # in_feature = torch.from_numpy(in_feature)
             in_feature = in_feature.astype(np.float32)
             transform = transforms.Compose([transforms.ToTensor()])
             in_feature = transform(in_feature)
@@ -278,7 +292,7 @@ def create_dataset(dataroot, save_dir, pretrained_model, width=672, height=672, 
             inference_feature = bcnn_model(in_feature)
             np.save(os.path.join(
                 save_dir, 'inference_feature/{:05}'.format(data_id)),
-                inference_feature.cpu().detach().numpy())
+                inference_feature.cpu().detach().numpy()[0, ...].transpose(1, 2, 0))
             token = my_sample['next']
             data_id += 1
             if data_id == end_id:
@@ -305,28 +319,15 @@ def generate_out_feature(
     def Pixel2pc(in_pixel, in_size, out_range):
         res = 2.0 * out_range / in_size
         return out_range - (in_pixel + 0.5) * res
-    # search_area_left_idx = np.abs(
-    #     grid_centers - box2d_left).argmin() - 1
-    # search_area_right_idx = np.abs(
-    #     grid_centers - box2d_right).argmin() + 1
-    # search_area_bottom_idx = np.abs(
-    #     grid_centers - box2d_bottom).argmin() - 1
-    # search_area_top_idx = np.abs(
-    #     grid_centers - box2d_top).argmin() + 1
 
     inv_res = 0.5 * width / 70.
     res = 1.0 / inv_res
     max_length = abs(2*res)
- 
+
     search_area_left_idx = F2I(box2d_left, 70, inv_res)
     search_area_right_idx = F2I(box2d_right, 70, inv_res)
     search_area_top_idx = F2I(box2d_top, 70, inv_res)
     search_area_bottom_idx = F2I(box2d_bottom, 70, inv_res)
-
-    # for i in range(
-    #         search_area_left_idx, search_area_right_idx):
-    #     for j in range(
-    #             search_area_bottom_idx, search_area_top_idx):
 
     for i in range(
             search_area_right_idx - 1, search_area_left_idx + 1):
@@ -359,28 +360,26 @@ def generate_out_feature(
                 else:
                     y_scale = 1.
 
-                normalized_yaw =  math.atan(math.sin(yaw)/ math.cos(yaw))
+                normalized_yaw = math.atan(math.sin(yaw) / math.cos(yaw))
 
                 # normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
                 # while normalized_yaw < -pi/2.0 :
                 #     normalized_yaw = normalized_yaw + pi
-                    
+
                 # while pi/2.0 < normalized_yaw :
                 #     normalized_yaw = normalized_yaw - pi
 
-
                 if mask:
-                    # print("1", i, j, search_area_left_idx)
                     out_feature[i, j, 0] = 1.  # category_pt
-                    out_feature[i, j, 1] = ((box2d_center[0] - grid_center_x) * -1) * min(x_scale, y_scale)
-                    out_feature[i, j, 2] = ((box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
+                    out_feature[i, j, 1] = (
+                        (box2d_center[0] - grid_center_x) * -1) * min(x_scale, y_scale)
+                    out_feature[i, j, 2] = (
+                        (box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
                     out_feature[i, j, 3] = 1.  # confidence_pt
                     out_feature[i, j, 4] = label  # classify_pt
-                    # out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
-                    out_feature[i, j, 5] = -math.sin(normalized_yaw * 2.0)
-                    out_feature[i, j, 6] = -math.cos(normalized_yaw * 2.0)
+                    out_feature[i, j, 5] = math.cos(normalized_yaw * 2.0)
+                    out_feature[i, j, 6] = math.sin(normalized_yaw * 2.0)
                     out_feature[i, j, 7] = height_pt  # height_pt
-
 
     return out_feature
 
