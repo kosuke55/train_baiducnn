@@ -31,7 +31,7 @@ except ImportError:
 
 def viz_feature(
         in_data, out_data, width=672, height=672, grid_range=70.,
-        draw_target='instance', use_cnpy_feature=True):
+        draw_target='instance', use_cnpy_feature=True, viz_all_grid=False):
 
     in_feature = np.load(in_data)
     out_feature = np.load(out_data)
@@ -65,15 +65,25 @@ def viz_feature(
         plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
 
     instance_norms = []
-    for i in range(height):
-        for j in range(width):
+    # for i in range(height):
+    #     for j in range(width):
+    scale_fraction = 1/4.
+    for i_tmp in range(int(height * scale_fraction)):
+        for j_tmp in range(int(width * scale_fraction)):
+            i = int(height / 2 - height * scale_fraction / 2 + i_tmp)
+            j = int(width / 2 - width * scale_fraction / 2 + j_tmp)
             if in_feature[i, j, 5] == 1:
                 fill_grid(i, j, 'r')
-            if out_feature[i, j, 0] > 0.5:
-                instance_norms.append(
-                    np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
-                fill_grid(i, j, 'b')
+            if out_feature[i, j, 0] > 0.5 or viz_all_grid:
+                # if out_feature[i, j, 0] > 0.5:
+                if out_feature[i, j, 0] > 0.5:
+                    instance_norms.append(
+                        np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
+                    fill_grid(i, j, 'b')
                 grid_center = np.array([grid_centers[j], -grid_centers[i]])
+
+                if not (np.mod(i, 2) == 0 and np.mod(j, 2) == 0):
+                    continue
                 if draw_target == 'instance':
                     dx = out_feature[i, j, 2]
                     dy = out_feature[i, j, 1]
@@ -101,8 +111,7 @@ def viz_feature(
                                                                   instance_norms),
                                                               np.min(instance_norms)))
 
-    plt.savefig("viz_feature_low.png", format="png")
-    plt.savefig("viz_feature.png", format="png", dpi=3000)
+    plt.savefig(draw_target + '.png', format='png', dpi=1000)
     plt.show()
 
 
@@ -204,4 +213,5 @@ if __name__ == '__main__':
         width=672, height=672, grid_range=70.,
         # draw_target='instance',
         draw_target='heading',
-        use_cnpy_feature=True)
+        use_cnpy_feature=True,
+        viz_all_grid=True)
