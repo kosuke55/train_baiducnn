@@ -14,6 +14,8 @@ pip install -r requirements.txt
 
 Only if using master branch,  
 ```
+git clone --recursive https://github.com/kosuke55/train_baiducnn.git
+pip install -r requirements.txt
 mkdir build
 cd build
 cmake ..
