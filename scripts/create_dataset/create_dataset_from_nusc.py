@@ -31,7 +31,7 @@ except ImportError:
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
                    use_constant_feature=True, use_intensity_feature=True,
-                   end_id=None):
+                   end_id=None, augmentation_num=0):
 
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
@@ -49,7 +49,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
 
     grid_length = 2. * grid_range / size
     label_half_length = 0
-
+    z_trans_range = 0.5
+    sample_id = 0
     data_id = 0
     grid_ticks = np.arange(
         -grid_range, grid_range + grid_length, grid_length)
@@ -62,8 +63,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
 
         # try:
         while(token != ''):
-            print('--- {} '.format(data_id) + token + ' ---')
-
+            print('sample:{} {} created_data={}'.format(
+                sample_id, token, data_id))
             my_sample = nusc.get('sample', token)
             sd_record = nusc.get(
                 'sample_data', my_sample['data'][ref_chan])
@@ -71,96 +72,103 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             chan = sd_record['channel']
             pc, times = LidarPointCloud.from_file_multisweep(
                 nusc, sample_rec, chan, ref_chan, nsweeps=1)
-            _, boxes, _ = nusc.get_sample_data(
-                sd_record['token'], box_vis_level=0)
-            out_feature = np.zeros((size, size, 8), dtype=np.float32)
-            start = time.time()
-            for box_idx, box in enumerate(boxes):
-                label = 0
-                if box.name.split('.')[0] == 'vehicle':
-                    if box.name.split('.')[1] == 'car':
-                        label = 1
-                    elif box.name.split('.')[1] == 'bus':
-                        label = 2
-                    elif box.name.split('.')[1] == 'truck':
-                        label = 2
-                    elif box.name.split('.')[1] == 'construction':
-                        label = 2
-                    elif box.name.split('.')[1] == 'emergency':
-                        label = 2
-                    elif box.name.split('.')[1] == 'trailer':
-                        label = 2
-                    elif box.name.split('.')[1] == 'bicycle':
-                        label = 3
-                    elif box.name.split('.')[1] == 'motorcycle':
-                        label = 3
-                elif box.name.split('.')[0] == 'human':
-                    label = 4
-                # elif box.name.split('.')[0] == 'movable_object':
-                #     label = 1
-                # elif box.name.split('.')[0] == 'static_object':
-                #     label = 1
+
+            z_trans = 0
+            for augmentation_idx in range(augmentation_num + 1):
+                if augmentation_idx > 0:
+                    z_trans = (np.random.rand() - 0.5) * 2 * z_trans_range
+                    pc.translate([0, 0, z_trans])
+
+                pc_points = pc.points.astype(np.float32)
+                _, boxes, _ = nusc.get_sample_data(
+                    sd_record['token'], box_vis_level=0)
+
+                out_feature = np.zeros((size, size, 8), dtype=np.float32)
+                for box_idx, box in enumerate(boxes):
+                    if augmentation_idx > 0:
+                        box.translate([0, 0, z_trans])
+                    label = 0
+                    if box.name.split('.')[0] == 'vehicle':
+                        if box.name.split('.')[1] == 'car':
+                            label = 1
+                        elif box.name.split('.')[1] == 'bus':
+                            label = 2
+                        elif box.name.split('.')[1] == 'truck':
+                            label = 2
+                        elif box.name.split('.')[1] == 'construction':
+                            label = 2
+                        elif box.name.split('.')[1] == 'emergency':
+                            label = 2
+                        elif box.name.split('.')[1] == 'trailer':
+                            label = 2
+                        elif box.name.split('.')[1] == 'bicycle':
+                            label = 3
+                        elif box.name.split('.')[1] == 'motorcycle':
+                            label = 3
+                    elif box.name.split('.')[0] == 'human':
+                        label = 4
+                    # elif box.name.split('.')[0] == 'movable_object':
+                    #     label = 1
+                    # elif box.name.split('.')[0] == 'static_object':
+                    #     label = 1
+                    else:
+                        continue
+                    height_pt = np.linalg.norm(
+                        box.corners().T[0] - box.corners().T[3])
+                    box_corners = box.corners().astype(np.float32)
+                    corners2d = box_corners[:2, :]
+                    # corners2d = box.corners()[:2, :].astype(np.float32)
+                    box2d = corners2d.T[[2, 3, 7, 6]]
+                    box2d_center = box2d.mean(axis=0)
+                    yaw, pitch, roll = box.orientation.yaw_pitch_roll
+                    # print('--')
+                    # print(box.name)
+                    p1_reshape = box_corners
+                    out_feature = generate_out_feature(width, height, size, grid_centers,
+                                                       box_corners, box2d, box2d_center,
+                                                       pc_points, height_pt,
+                                                       label, label_half_length, yaw, out_feature)
+
+                    # generate_out_feature(width, height, size, grid_centers, pc.points,
+                    #                      box.corners(), height_pt,
+                    #                      label, label_half_length, yaw,
+                    #                      out_feature)
+                    # out_feature = out_feature.astype(np.float32)
+
+                # feature_generator = fg.FeatureGenerator(
+                #     grid_range, width, height,
+                #     use_constant_feature, use_intensity_feature)
+
+                feature_generator = fgpb.FeatureGenerator(
+                    grid_range, width, height)
+                in_feature = feature_generator.generate(
+                    pc_points.T,
+                    use_constant_feature, use_intensity_feature)
+
+                if use_constant_feature and use_intensity_feature:
+                    channels = 8
+                elif use_constant_feature or use_intensity_feature:
+                    channels = 6
                 else:
-                    continue
-                height_pt = np.linalg.norm(
-                    box.corners().T[0] - box.corners().T[3])
-                box_corners = box.corners().astype(np.float32)
-                corners2d = box_corners[:2, :]
-                # corners2d = box.corners()[:2, :].astype(np.float32)
-                box2d = corners2d.T[[2, 3, 7, 6]]
-                box2d_center = box2d.mean(axis=0)
-                yaw, pitch, roll = box.orientation.yaw_pitch_roll
-                # print('--')
-                # print(box.name)
-                p1_reshape = box_corners
-                out_feature = generate_out_feature(width, height, size, grid_centers,
-                                                   box_corners, box2d, box2d_center,
-                                                   pc.points.astype(
-                                                       np.float32), height_pt,
-                                                   label, label_half_length, yaw, out_feature)
+                    channels = 4
 
-                # generate_out_feature(width, height, size, grid_centers, pc.points,
-                #                      box.corners(), height_pt,
-                #                      label, label_half_length, yaw,
-                #                      out_feature)
-                # out_feature = out_feature.astype(np.float32)
-
-            out_end = time.time()
-            # feature_generator = fg.FeatureGenerator(
-            #     grid_range, width, height,
-            #     use_constant_feature, use_intensity_feature)
-
-            feature_generator = fgpb.FeatureGenerator(
-                grid_range, width, height)
-            in_feature = feature_generator.generate(
-                pc.points.T, use_constant_feature, use_intensity_feature)
-            in_end = time.time()
-
-            print('time total {} out {} in {}'.format(
-                in_end - start, out_end - start, in_end - out_end))
-            if use_constant_feature and use_intensity_feature:
-                channels = 8
-            elif use_constant_feature or use_intensity_feature:
-                channels = 6
-            else:
-                channels = 4
-
-            in_feature = np.array(in_feature).reshape(
-                channels, size, size).astype(np.float16)
-            in_feature = in_feature.transpose(1, 2, 0)
-            # instance_pt is flipped due to flip
-            # out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
-            # out_feature[:, :, 1:3] *= -1
-            np.save(os.path.join(
-                save_dir, 'in_feature/{:05}'.format(data_id)),
-                in_feature)
-            np.save(os.path.join(
-                save_dir, 'out_feature/{:05}'.format(data_id)),
-                out_feature)
-            token = my_sample['next']
-            data_id += 1
-            if data_id == end_id:
-                return
+                in_feature = np.array(in_feature).reshape(
+                    channels, size, size).astype(np.float16)
+                in_feature = in_feature.transpose(1, 2, 0)
+                # instance_pt is flipped due to flip
+                # out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
+                # out_feature[:, :, 1:3] *= -1
+                np.save(os.path.join(
+                    save_dir, 'in_feature/{:05}'.format(data_id)),
+                    in_feature)
+                np.save(os.path.join(
+                    save_dir, 'out_feature/{:05}'.format(data_id)),
+                    out_feature)
+                token = my_sample['next']
+                data_id += 1
+                if data_id == end_id:
+                    return
+            sample_id += 1
         # except KeyboardInterrupt:
         #     return
         # except BaseException:
@@ -341,6 +349,9 @@ if __name__ == '__main__':
     parser.add_argument('--end_id', type=int,
                         help='How many data to generate. If None, all data',
                         default=None)
+    parser.add_argument('--augmentation_num', '-an', type=int,
+                        help='How many data augmentations for one sample',
+                        default=0)
 
     args = parser.parse_args()
     create_dataset(dataroot=args.dataroot,
@@ -351,4 +362,5 @@ if __name__ == '__main__':
                    nusc_version=args.nusc_version,
                    use_constant_feature=args.use_constant_feature,
                    use_intensity_feature=args.use_intensity_feature,
-                   end_id=args.end_id)
+                   end_id=args.end_id,
+                   augmentation_num=args.augmentation_num)
