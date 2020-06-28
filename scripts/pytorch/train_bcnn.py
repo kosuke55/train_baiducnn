@@ -204,7 +204,7 @@ class Trainer(object):
             # loss = class_loss + instance_loss + heading_loss + height_loss
             if mode == 'train':
                 self.optimizer.zero_grad()
-                # loss.backward()
+                loss.backward()
                 self.optimizer.step()
 
             loss_for_record = category_loss + confidence_loss \
@@ -346,7 +346,7 @@ class Trainer(object):
         for self.epo in range(self.max_epoch):
             self.step('train')
             self.step('val')
-            # self.scheduler.step()
+            self.scheduler.step()
 
 
 if __name__ == "__main__":
