@@ -93,6 +93,32 @@ class Trainer(object):
         self.scheduler = optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lambda epo: 0.9 ** epo)
 
+    def get_category_or_confidence_image(self, feature, thresh=0.3):
+        feature_np = feature.cpu().detach().numpy().copy()
+        feature_np = feature_np.transpose(1, 2, 0)
+        img = np.zeros(
+            (self.height, self.width, 1), dtype=np.uint8)
+        idx = np.where(feature_np[..., 0] > thresh)
+        img[idx] = 1.0
+        img = img.transpose(2, 0, 1)
+        return img
+
+    def get_class_image(self, feature):
+        feature_np = feature.cpu().detach().numpy().copy()
+        feature_np = feature_np.transpose(1, 2, 0)
+        feature_np = np.argmax(feature_np, axis=2)[..., None]
+        car_idx = np.where(feature_np[:, :, 0] == 1)
+        bus_idx = np.where(feature_np[:, :, 0] == 2)
+        bike_idx = np.where(feature_np[:, :, 0] == 3)
+        human_idx = np.where(feature_np[:, :, 0] == 4)
+        img = np.zeros((self.height, self.width, 3))
+        img[car_idx] = [255, 0, 0]
+        img[bus_idx] = [0, 255, 0]
+        img[bike_idx] = [0, 0, 255]
+        img[human_idx] = [0, 255, 255]
+        img = img.transpose(2, 0, 1)
+        return img
+
     def step(self, mode):
         print('Start {}'.format(mode))
 
@@ -116,7 +142,6 @@ class Trainer(object):
         for index, (in_feature, out_feature_gt) in tqdm.tqdm(
                 enumerate(dataloader), total=len(dataloader),
                 desc='{} epoch={}'.format(mode, self.epo), leave=True):
-            out_feature_gt_np = out_feature_gt.detach().numpy().copy()
             category_weight = out_feature_gt.detach().numpy().copy()
             category_weight = category_weight[:, 3, ...]
             object_idx = np.where(category_weight == 0)
@@ -126,7 +151,6 @@ class Trainer(object):
             category_weight = torch.from_numpy(category_weight)
             category_weight = category_weight.to(self.device)
 
-            out_feature_gt_np = out_feature_gt.detach().numpy().copy()
             confidence_weight = out_feature_gt.detach().numpy().copy()
             confidence_weight = confidence_weight[:, 3, ...]
             object_idx = np.where(confidence_weight == 0)
@@ -197,86 +221,21 @@ class Trainer(object):
             heading_y_loss_sum += heading_y_loss.item()
             height_loss_sum += height_loss.item()
 
-            # category
-            category = output[0, 0:1, :, :]
-            category_np = category.cpu().detach().numpy().copy()
-            category_np = category_np.transpose(1, 2, 0)
-            category_img = np.zeros(
-                (self.height, self.width,1), dtype=np.uint8)
-            category_idx = np.where(category_np[..., 0] > 0.3)
-            # category_idx = np.where(
-            #     category_np[..., 0] > category_np[..., 0].mean())
-            category_img[category_idx] = 1.0
-            category_img = category_img.transpose(2, 0, 1)
-
-            # confidence
-            confidence = output[0, 3:4, :, :]
-            confidence_np = confidence.cpu().detach().numpy().copy()
-            confidence_np = confidence_np.transpose(1, 2, 0)
-            confidence_img = np.zeros(
-                (self.height, self.width, 1), dtype=np.uint8)
-            conf_idx = np.where(confidence_np[..., 0] > 0.3)
-            # conf_idx = np.where(
-            #     confidence_np[..., 0] > confidence_np[..., 0].mean())
-            confidence_img[conf_idx] = 1.0
-            confidence_img = confidence_img.transpose(2, 0, 1)
-
-            # draw pred class
-            pred_class = output[0, 4:10, :, :]
-            pred_class_np = pred_class.cpu().detach().numpy().copy()
-            pred_class_np = pred_class_np.transpose(1, 2, 0)
-            pred_class_np = np.argmax(pred_class_np, axis=2)[..., None]
-            car_idx = np.where(pred_class_np[:, :, 0] == 1)
-            bus_idx = np.where(pred_class_np[:, :, 0] == 2)
-            bike_idx = np.where(pred_class_np[:, :, 0] == 3)
-            human_idx = np.where(pred_class_np[:, :, 0] == 4)
-            pred_class_img = np.zeros((self.height, self.width, 3))
-            pred_class_img[car_idx] = [255, 0, 0]
-            pred_class_img[bus_idx] = [0, 255, 0]
-            pred_class_img[bike_idx] = [0, 0, 255]
-            pred_class_img[human_idx] = [0, 255, 255]
-            pred_class_img = pred_class_img.transpose(2, 0, 1)
-
-            # draw label image
-            out_feature_gt_np = out_feature_gt_np[0, ...].transpose(1, 2, 0)
-            true_label_np = out_feature_gt_np[..., 4:10]
-            true_label_np = np.argmax(true_label_np, axis=2)[..., None]
-            car_idx = np.where(true_label_np[:, :, 0] == 1)
-            bus_idx = np.where(true_label_np[:, :, 0] == 2)
-            bike_idx = np.where(true_label_np[:, :, 0] == 3)
-            human_idx = np.where(true_label_np[:, :, 0] == 4)
-            label_img = np.zeros((self.height, self.width, 3))
-            label_img[car_idx] = [255, 0, 0]
-            label_img[bus_idx] = [0, 255, 0]
-            label_img[bike_idx] = [0, 0, 255]
-            label_img[human_idx] = [0, 255, 255]
-            label_img = label_img.transpose(2, 0, 1)
-
-            # pred_heading = output[0, 10:11, :, :]
-            # pred_heading_np = pred_heading.cpu().detach().numpy().copy()
-            # pred_heading_np = pred_heading_np.transpose(1, 2, 0)
-            # pred_heading_np = np.argmax(pred_heading_np, axis=2)[..., None]
-            # zero_60_idx = np.where(pred_heading_np[:, :, 0] < math.pi/2)
-            # # sixty_120_idx = np.where(
-            # #     math.pi/3 < pred_heading_np[:, :, 0]  < math.pi*2/3)
-            # one_hundred_twenty_180_idx = np.where(math.pi/2 <
-            #                                       pred_heading_np[:, :, 0])
-            # pred_heading_img = np.zeros((self.width, self.height, 3))
-            # pred_heading_img[zero_60_idx] = [255, 0, 0]
-            # # pred_heading_img[sixty_120_idx] = [0, 255, 0]
-            # pred_heading_img[one_hundred_twenty_180_idx] = [0, 0, 255]
-            # pred_heading_img = pred_heading_img.transpose(2, 0, 1)
-
+            # visuzlize
             category_gt_img \
                 = out_feature_gt[0, 0:1, ...].cpu().detach().numpy().copy()
             confidence_gt_img \
                 = out_feature_gt[0, 3:4, ...].cpu().detach().numpy().copy()
-
+            category_img = self.get_category_or_confidence_image(
+                output[0, 0:1, :, :], thresh=0.3)
+            confidence_img = self.get_category_or_confidence_image(
+                output[0, 3:4, :, :], thresh=0.3)
+            label_img = self.get_class_image(out_feature_gt[0, 4:10, ...])
+            pred_class_img = self.get_class_image(output[0, 4:10, ...])
             in_feature_img \
                 = in_feature[0,
                              self.non_empty_channle:self.non_empty_channle + 1,
                              ...].cpu().detach().numpy().copy()
-
             in_feature_img[in_feature_img > 0] = 255
 
             if np.mod(index, self.vis_interval) == 0:
@@ -294,15 +253,15 @@ class Trainer(object):
                 self.vis.images([category_gt_img, category_img],
                                 win='{}_category'.format(mode),
                                 opts=dict(
-                    title='{} category(GT, Pred)'.format(mode)))
+                                    title='{} category(GT, Pred)'.format(mode)))
                 self.vis.images([confidence_gt_img, confidence_img],
                                 win='{}_confidence'.format(mode),
                                 opts=dict(
-                    title='{} confidence(GT, Pred)'.format(mode)))
+                                    title='{} confidence(GT, Pred)'.format(mode)))
                 self.vis.images([label_img, pred_class_img],
                                 win='{}_class'.format(mode),
                                 opts=dict(
-                    title='{} class pred(GT, Pred)'.format(mode)))
+                                    title='{} class pred(GT, Pred)'.format(mode)))
 
             if mode == 'train':
                 if index == self.train_data_num - 1:
