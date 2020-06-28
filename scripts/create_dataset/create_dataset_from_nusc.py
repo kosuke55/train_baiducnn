@@ -332,12 +332,12 @@ if __name__ == '__main__':
     parser.add_argument('--nusc_version', type=str,
                         help='Nuscenes version. v1.0-mini or v1.0-trainval',
                         default='v1.0-mini')
-    parser.add_argument('--use_constant_feature', type=str,
+    parser.add_argument('--use_constant_feature', type=int,
                         help='Whether to use constant feature',
-                        default=False)
-    parser.add_argument('--use_intensity_feature', type=str,
+                        default=0)
+    parser.add_argument('--use_intensity_feature', type=int,
                         help='Whether to use intensity feature',
-                        default=True)
+                        default=1)
     parser.add_argument('--end_id', type=int,
                         help='How many data to generate. If None, all data',
                         default=None)
