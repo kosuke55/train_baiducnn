@@ -11,6 +11,15 @@ Only supports python3.
 git clone -b original_model https://github.com/kosuke55/train_baiducnn.git  
 pip install -r requirements.txt  
 ```
+
+Only if using master branch,  
+```
+mkdir build
+cd build
+cmake ..
+make -j
+```
+
 2) [create_dataset_from_nusc.py](scripts/create_dataset/create_dataset_from_nusc.py) is for creating a dataset to train apollo cnn.  Set dataroot and save_dir.  
 
 ```
