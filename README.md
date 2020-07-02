@@ -12,8 +12,8 @@ git clone -b original_model https://github.com/kosuke55/train_baiducnn.git
 pip install -r requirements.txt  
 ```
 
-Only if using master branch,  
 ```
+Only if using master branch(WIP)
 git clone --recursive https://github.com/kosuke55/train_baiducnn.git
 pip install -r requirements.txt
 mkdir build
