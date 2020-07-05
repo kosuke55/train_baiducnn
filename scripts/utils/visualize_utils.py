@@ -29,16 +29,11 @@ except ImportError:
             break
 
 
-def viz_feature(
-        in_data, out_data, width=672, height=672, grid_range=70.,
-        draw_target='instance', use_cnpy_feature=True, viz_all_grid=False, save_image=True):
-
-    in_feature = np.load(in_data)
-    out_feature = np.load(out_data)
-
-    if use_cnpy_feature:
-        in_feature = in_feature.transpose(1, 2, 0)
-        out_feature = out_feature.transpose(1, 2, 0)
+def get_arrow_image(in_feature, out_feature, width=672, height=672,
+                    grid_range=70., draw_target='instance',
+                    viz_all_grid=False):
+    """ Temporary for debug. Used to get visdom images from the training code.
+    """
 
     if width == height:
         size = width
@@ -50,6 +45,84 @@ def viz_feature(
     grid_ticks = np.arange(-grid_range, grid_range + grid_length, grid_length)
 
     grid_centers = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
+
+    fig, ax = plt.subplots()
+
+    def fill_grid(i, j, color):
+        grid_center = np.array([grid_centers[j], -grid_centers[i]])
+        fill_area = np.array([[(grid_center[0] - grid_length / 2),
+                               (grid_center[0] + grid_length / 2),
+                               (grid_center[0] + grid_length / 2),
+                               (grid_center[0] - grid_length / 2)],
+                              [(grid_center[1] + grid_length / 2),
+                               (grid_center[1] + grid_length / 2),
+                               (grid_center[1] - grid_length / 2),
+                               (grid_center[1] - grid_length / 2)]])
+
+        plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
+
+    scale_fraction = 1 / 3.
+    for i_tmp in range(int(height * scale_fraction)):
+        for j_tmp in range(int(width * scale_fraction)):
+            i = int(height / 2 - height * scale_fraction / 2 + i_tmp)
+            j = int(width / 2 - width * scale_fraction / 2 + j_tmp)
+            if in_feature[i, j, 5] == 1:
+                fill_grid(i, j, 'r')
+            if out_feature[i, j, 0] > 0.5 or viz_all_grid:
+                if out_feature[i, j, 0] > 0.5:
+                    fill_grid(i, j, 'b')
+                grid_center = np.array([grid_centers[j], -grid_centers[i]])
+
+                if not (np.mod(i, 5) == 0 and np.mod(j, 5) == 0):
+                    continue
+                if draw_target == 'instance':
+                    dx = out_feature[i, j, 2]
+                    dy = out_feature[i, j, 1]
+                elif draw_target == 'heading':
+                    yaw = math.atan2(out_feature[i, j, 10],
+                                     out_feature[i, j, 9]) * 0.5
+                    dx = math.sin(yaw)
+                    dy = math.cos(yaw)
+                plt.arrow(x=grid_center[0],
+                          y=grid_center[1],
+                          dx=dx,
+                          dy=-dy,
+                          width=0.01,
+                          head_width=0.05,
+                          head_length=0.05,
+                          length_includes_head=True,
+                          color='k')
+
+    fig.canvas.draw()
+    image = np.array(fig.canvas.renderer.buffer_rgba())[..., :3]
+    plt.close()
+
+    return image
+
+
+def viz_feature(
+        in_feature, out_feature, width=672, height=672, grid_range=70.,
+        draw_target='instance', viz_all_grid=False, save_image=True, use_cnpy=False):
+
+    # in_feature = np.load(in_data)
+    # out_feature = np.load(out_data)
+
+    # if use_cnpy_feature:
+    #     in_feature = in_feature.transpose(1, 2, 0)
+    #     out_feature = out_feature.transpose(1, 2, 0)
+
+    if width == height:
+        size = width
+    else:
+        raise Exception(
+            'Currently only supported if width and height are equal')
+
+    grid_length = 2. * grid_range / size
+    grid_ticks = np.arange(-grid_range, grid_range + grid_length, grid_length)
+
+    grid_centers = (grid_ticks + grid_length / 2)[:len(grid_ticks) - 1]
+
+    fig, ax = plt.subplots()
 
     def fill_grid(i, j, color):
         grid_center = np.array([grid_centers[j], -grid_centers[i]])
@@ -74,9 +147,9 @@ def viz_feature(
             j = int(width / 2 - width * scale_fraction / 2 + j_tmp)
             if in_feature[i, j, 5] == 1:
                 fill_grid(i, j, 'r')
-            if out_feature[i, j, 0] > 0.5 or viz_all_grid:
+            if out_feature[i, j, 0] > 0.3 or viz_all_grid:
                 # if out_feature[i, j, 0] > 0.5:
-                if out_feature[i, j, 0] > 0.5:
+                if out_feature[i, j, 0] > 0.3:
                     instance_norms.append(
                         np.linalg.norm([out_feature[i, j, 2],
                                         out_feature[i, j, 1]]))
@@ -214,15 +287,31 @@ if __name__ == '__main__':
     #     inference_data='/media/yukihiro/3594a1e3-a5ed-4fcf-a386-9d98730f5989/v1.0-mini_dataset/mini-6c-672_test/inference_feature/00006.npy',
     #     width=672, height=672, grid_range=70.,
     #     draw_instance_pt=True, draw_heading_pt=False)
+    in_data = '/media/kosuke/SANDISK/nusc/yaw_two/in_feature/00001.npy'
+    out_data = '/media/kosuke/SANDISK/nusc/yaw_two/out_feature/00001.npy'
 
-    viz_feature(
-        # in_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/in_feature_0.npy',
-        # out_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/out_feature_0.npy',
-        in_data='/media/kosuke/SANDISK/nusc/mini-6c-672-aug/in_feature/00003.npy',
-        out_data='/media/kosuke/SANDISK/nusc/mini-6c-672-aug/out_feature/00003.npy',
+    use_cnpy_feature = False
+
+    in_feature = np.load(in_data)
+    out_feature = np.load(out_data)
+
+
+    if use_cnpy_feature:
+        in_feature = in_feature.transpose(1, 2, 0)
+        out_feature = out_feature.transpose(1, 2, 0)
+
+    # viz_feature(
+    #     in_feature=in_feature,
+    #     out_feature=out_feature,
+    #     width=672, height=672, grid_range=70.,
+    #     # draw_target='instance',
+    #     draw_target='heading',
+    #     viz_all_grid=False,
+    #     save_image=False)
+
+    get_arrow_image(
+        in_feature=in_feature,
+        out_feature=out_feature,
         width=672, height=672, grid_range=70.,
-        # draw_target='instance',
         draw_target='heading',
-        use_cnpy_feature=False,
-        viz_all_grid=False,
-        save_image=True)
+        viz_all_grid=False)

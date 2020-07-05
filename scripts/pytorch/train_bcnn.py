@@ -2,8 +2,8 @@
 # coding: utf-8
 
 import argparse
-import math
-import os
+import os.path as osp
+import sys
 
 import gdown
 import numpy as np
@@ -17,6 +17,9 @@ from datetime import datetime
 from BCNN import BCNN
 from BcnnLoss import BcnnLoss
 from NuscData import load_dataset
+
+sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
+from utils.visualize_utils import get_arrow_image  # noqa
 
 
 class Trainer(object):
@@ -50,7 +53,7 @@ class Trainer(object):
         self.model = torch.nn.DataParallel(self.model)  # multi gpu
         self.save_model_interval = 1
 
-        if os.path.exists(pretrained_model):
+        if osp.exists(pretrained_model):
             print('Use pretrained model')
             self.model.load_state_dict(torch.load(pretrained_model))
         else:
@@ -68,6 +71,7 @@ class Trainer(object):
 
         self.width = width
         self.height = height
+        self.grid_range = 70.
 
         # self.optimizer = optim.RAdam(
         #     self.model.parameters(),
@@ -92,6 +96,13 @@ class Trainer(object):
 
         self.scheduler = optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lambda epo: 0.9 ** epo)
+
+    def get_arrow_image(self, in_feature, out_feature):
+        img = get_arrow_image(in_feature, out_feature,
+                              self.width, self.height, self.grid_range,
+                              'heading')
+        img = img.transpose(2, 0, 1)
+        return img
 
     def get_category_or_confidence_image(self, feature, thresh=0.3):
         feature_np = feature.cpu().detach().numpy().copy()
@@ -238,6 +249,18 @@ class Trainer(object):
                              ...].cpu().detach().numpy().copy()
             in_feature_img[in_feature_img > 0] = 255
 
+            # if np.mod(self.epo, 1) == 0:
+            if np.mod(index, 1000) == 0:
+                arrow_gt_image = self.get_arrow_image(
+                    in_feature[0, ...].cpu().detach(
+                    ).numpy().transpose(1, 2, 0),
+                    out_feature_gt[0, ...].cpu().detach().numpy().transpose(1, 2, 0))
+
+                arrow_image = self.get_arrow_image(
+                    in_feature[0, ...].cpu().detach(
+                    ).numpy().transpose(1, 2, 0),
+                    output[0, ...].cpu().detach().numpy().transpose(1, 2, 0))
+
             if np.mod(index, self.vis_interval) == 0:
                 print('epoch {}, {}/{}, {}_loss is {}'.format(
                     self.epo,
@@ -262,6 +285,11 @@ class Trainer(object):
                                 win='{}_class'.format(mode),
                                 opts=dict(
                                     title='{} class pred(GT, Pred)'.format(mode)))
+                if np.mod(index, 1000) == 0:
+                    self.vis.images([arrow_gt_image, arrow_image],
+                                    win='{} arrow'.format(mode),
+                                    opts=dict(
+                                        title='arrow'))
 
             if mode == 'train':
                 if index == self.train_data_num - 1:
