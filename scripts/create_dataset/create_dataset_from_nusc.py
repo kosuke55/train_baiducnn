@@ -2,15 +2,16 @@
 # coding: utf-8
 
 import argparse
+import copy
 import math
 import os
 import sys
-import time
 
 import numba
 import numpy as np
+from pyquaternion import Quaternion
 
-import feature_generator as fg
+# import feature_generator as fg
 import feature_generator_pb as fgpb
 
 
@@ -70,23 +71,33 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 'sample_data', my_sample['data'][ref_chan])
             sample_rec = nusc.get('sample', sd_record['sample_token'])
             chan = sd_record['channel']
-            pc, times = LidarPointCloud.from_file_multisweep(
+            pc_raw, _ = LidarPointCloud.from_file_multisweep(
                 nusc, sample_rec, chan, ref_chan, nsweeps=1)
 
+            _, boxes_raw, _ = nusc.get_sample_data(
+                sd_record['token'], box_vis_level=0)
+
             z_trans = 0
+            q = Quaternion()
             for augmentation_idx in range(augmentation_num + 1):
+                pc = copy.copy(pc_raw)
+                boxes = copy.copy(boxes_raw)
                 if augmentation_idx > 0:
                     z_trans = (np.random.rand() - 0.5) * 2 * z_trans_range
                     pc.translate([0, 0, z_trans])
 
+                    z_rad = np.random.rand() * np.pi * 2
+                    q = Quaternion(axis=[0, 0, 1], radians=z_rad)
+                    pc.rotate(q.rotation_matrix)
+
                 pc_points = pc.points.astype(np.float32)
-                _, boxes, _ = nusc.get_sample_data(
-                    sd_record['token'], box_vis_level=0)
 
                 out_feature = np.zeros((size, size, 8), dtype=np.float32)
                 for box_idx, box in enumerate(boxes):
                     if augmentation_idx > 0:
                         box.translate([0, 0, z_trans])
+                        box.rotate(q)
+
                     label = 0
                     if box.name.split('.')[0] == 'vehicle':
                         if box.name.split('.')[1] == 'car':
