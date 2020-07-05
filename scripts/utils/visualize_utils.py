@@ -31,7 +31,7 @@ except ImportError:
 
 def viz_feature(
         in_data, out_data, width=672, height=672, grid_range=70.,
-        draw_target='instance', use_cnpy_feature=True, viz_all_grid=False):
+        draw_target='instance', use_cnpy_feature=True, viz_all_grid=False, save_image=True):
 
     in_feature = np.load(in_data)
     out_feature = np.load(out_data)
@@ -67,7 +67,7 @@ def viz_feature(
     instance_norms = []
     # for i in range(height):
     #     for j in range(width):
-    scale_fraction = 1/4.
+    scale_fraction = 1 / 2.
     for i_tmp in range(int(height * scale_fraction)):
         for j_tmp in range(int(width * scale_fraction)):
             i = int(height / 2 - height * scale_fraction / 2 + i_tmp)
@@ -78,7 +78,8 @@ def viz_feature(
                 # if out_feature[i, j, 0] > 0.5:
                 if out_feature[i, j, 0] > 0.5:
                     instance_norms.append(
-                        np.linalg.norm([out_feature[i, j, 2], out_feature[i, j, 1]]))
+                        np.linalg.norm([out_feature[i, j, 2],
+                                        out_feature[i, j, 1]]))
                     fill_grid(i, j, 'b')
                 grid_center = np.array([grid_centers[j], -grid_centers[i]])
 
@@ -88,6 +89,7 @@ def viz_feature(
                     dx = out_feature[i, j, 2]
                     dy = out_feature[i, j, 1]
                 elif draw_target == 'heading':
+
                     if use_cnpy_feature:
                         yaw = math.atan2(out_feature[i, j, 10],
                                          out_feature[i, j, 9]) * 0.5
@@ -96,7 +98,6 @@ def viz_feature(
                                          out_feature[i, j, 5]) * 0.5
                     dx = math.sin(yaw)
                     dy = math.cos(yaw)
-
                 plt.arrow(x=grid_center[0],
                           y=grid_center[1],
                           dx=dx,
@@ -110,8 +111,11 @@ def viz_feature(
                                                               np.max(
                                                                   instance_norms),
                                                               np.min(instance_norms)))
-
-    plt.savefig(draw_target + '.png', format='png', dpi=1000)
+    plt.title(in_data)
+    if save_image:
+        print('saving image...')
+        plt.savefig(draw_target + '.png', format='png', dpi=1000)
+        print('saved image')
     plt.show()
 
 
@@ -186,6 +190,13 @@ def viz_inference_feature(
     plt.show()
 
 
+def yaw2yaw(yaw):
+    normalized_yaw = math.atan(math.sin(yaw) / math.cos(yaw))
+    yaw = math.atan2(math.sin(normalized_yaw * 2.0),
+                     math.cos(normalized_yaw * 2.0)) * 0.5
+    return yaw
+
+
 def visualize_model():
     net = BCNN()
     bcnn_img = torch.rand(1, 8, 640, 640)
@@ -205,13 +216,13 @@ if __name__ == '__main__':
     #     draw_instance_pt=True, draw_heading_pt=False)
 
     viz_feature(
-        in_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/in_feature_0.npy',
-        out_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/out_feature_0.npy',
-        # in_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/in_feature/00000.npy',
-        # out_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/inference_feature/00000.npy',
-        # out_data='/media/kosuke/SANDISK/nusc/yaw_two_infer/out_feature/00000.npy',
+        # in_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/in_feature_0.npy',
+        # out_data='/home/kosuke/ros/autoware_ws/src/lidar_instance_segmentation/saved_feature/out_feature_0.npy',
+        in_data='/media/kosuke/SANDISK/nusc/mini-6c-672-aug/in_feature/00003.npy',
+        out_data='/media/kosuke/SANDISK/nusc/mini-6c-672-aug/out_feature/00003.npy',
         width=672, height=672, grid_range=70.,
         # draw_target='instance',
         draw_target='heading',
-        use_cnpy_feature=True,
-        viz_all_grid=True)
+        use_cnpy_feature=False,
+        viz_all_grid=False,
+        save_image=True)
