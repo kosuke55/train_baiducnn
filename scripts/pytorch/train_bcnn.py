@@ -249,17 +249,18 @@ class Trainer(object):
                              ...].cpu().detach().numpy().copy()
             in_feature_img[in_feature_img > 0] = 255
 
-            # if np.mod(self.epo, 1) == 0:
-            if np.mod(index, 1000) == 0:
+            if np.mod(index, len(dataloader) - 1) == 0:
                 arrow_gt_image = self.get_arrow_image(
                     in_feature[0, ...].cpu().detach(
                     ).numpy().transpose(1, 2, 0),
-                    out_feature_gt[0, ...].cpu().detach().numpy().transpose(1, 2, 0))
+                    out_feature_gt[0, ...].cpu().detach(
+                    ).numpy().transpose(1, 2, 0))
 
                 arrow_image = self.get_arrow_image(
                     in_feature[0, ...].cpu().detach(
                     ).numpy().transpose(1, 2, 0),
-                    output[0, ...].cpu().detach().numpy().transpose(1, 2, 0))
+                    output[0, ...].cpu().detach(
+                    ).numpy().transpose(1, 2, 0))
 
             if np.mod(index, self.vis_interval) == 0:
                 print('epoch {}, {}/{}, {}_loss is {}'.format(
@@ -272,7 +273,7 @@ class Trainer(object):
                 self.vis.images(in_feature_img,
                                 win='{} in_feature'.format(mode),
                                 opts=dict(
-                                    title='train in_feature'))
+                                    title='{} in_feature'.format(mode)))
                 self.vis.images([category_gt_img, category_img],
                                 win='{}_category'.format(mode),
                                 opts=dict(
@@ -285,11 +286,11 @@ class Trainer(object):
                                 win='{}_class'.format(mode),
                                 opts=dict(
                                     title='{} class pred(GT, Pred)'.format(mode)))
-                if np.mod(index, 1000) == 0:
+                if np.mod(index, len(dataloader) - 1) == 0:
                     self.vis.images([arrow_gt_image, arrow_image],
-                                    win='{} arrow'.format(mode),
+                                    win='{}_arrow (GT, Pred)'.format(mode),
                                     opts=dict(
-                                        title='arrow'))
+                                        title='{} arrow (GT, Pred)'.format(mode)))
 
             if mode == 'train':
                 if index == self.train_data_num - 1:

@@ -30,8 +30,8 @@ except ImportError:
 
 
 def get_arrow_image(in_feature, out_feature, width=672, height=672,
-                    grid_range=70., draw_target='instance',
-                    viz_all_grid=False):
+                    grid_range=70., draw_target='instance', thresh=0.3,
+                    viz_range=1/3., viz_all_grid=False):
     """ Temporary for debug. Used to get visdom images from the training code.
     """
 
@@ -61,15 +61,14 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
 
         plt.fill(fill_area[0], fill_area[1], color=color, alpha=0.1)
 
-    scale_fraction = 1 / 3.
-    for i_tmp in range(int(height * scale_fraction)):
-        for j_tmp in range(int(width * scale_fraction)):
-            i = int(height / 2 - height * scale_fraction / 2 + i_tmp)
-            j = int(width / 2 - width * scale_fraction / 2 + j_tmp)
+    for i_tmp in range(int(height * viz_range)):
+        for j_tmp in range(int(width * viz_range)):
+            i = int(height / 2 - height * viz_range / 2 + i_tmp)
+            j = int(width / 2 - width * viz_range / 2 + j_tmp)
             if in_feature[i, j, 5] == 1:
                 fill_grid(i, j, 'r')
-            if out_feature[i, j, 0] > 0.5 or viz_all_grid:
-                if out_feature[i, j, 0] > 0.5:
+            if out_feature[i, j, 0] > thresh or viz_all_grid:
+                if out_feature[i, j, 0] > thresh:
                     fill_grid(i, j, 'b')
                 grid_center = np.array([grid_centers[j], -grid_centers[i]])
 
@@ -102,7 +101,8 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
 
 def viz_feature(
         in_feature, out_feature, width=672, height=672, grid_range=70.,
-        draw_target='instance', viz_all_grid=False, save_image=True, use_cnpy=False):
+        draw_target='instance', viz_all_grid=False,
+        save_image=True, use_cnpy=False):
 
     # in_feature = np.load(in_data)
     # out_feature = np.load(out_data)
@@ -140,11 +140,11 @@ def viz_feature(
     instance_norms = []
     # for i in range(height):
     #     for j in range(width):
-    scale_fraction = 1 / 2.
-    for i_tmp in range(int(height * scale_fraction)):
-        for j_tmp in range(int(width * scale_fraction)):
-            i = int(height / 2 - height * scale_fraction / 2 + i_tmp)
-            j = int(width / 2 - width * scale_fraction / 2 + j_tmp)
+    viz_range = 1 / 2.
+    for i_tmp in range(int(height * viz_range)):
+        for j_tmp in range(int(width * viz_range)):
+            i = int(height / 2 - height * viz_range / 2 + i_tmp)
+            j = int(width / 2 - width * viz_range / 2 + j_tmp)
             if in_feature[i, j, 5] == 1:
                 fill_grid(i, j, 'r')
             if out_feature[i, j, 0] > 0.3 or viz_all_grid:
@@ -294,7 +294,6 @@ if __name__ == '__main__':
 
     in_feature = np.load(in_data)
     out_feature = np.load(out_data)
-
 
     if use_cnpy_feature:
         in_feature = in_feature.transpose(1, 2, 0)
