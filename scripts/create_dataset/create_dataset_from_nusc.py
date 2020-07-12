@@ -81,8 +81,8 @@ def add_noise_points(points, num_rand_samples=5,
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
-                   use_constant_feature=1, use_intensity_feature=1,
-                   end_id=None, augmentation_num=0, add_noise=True):
+                   use_constant_feature=False, use_intensity_feature=True,
+                   end_id=None, augmentation_num=0, add_noise=False):
     """Create a learning dataset from Nuscens
 
     Parameters
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                         default=0)
     parser.add_argument('--add_noise', type=int,
                         help='Whether to add noise to pointcloud',
-                        default=1)
+                        default=0)
 
     args = parser.parse_args()
     create_dataset(dataroot=args.dataroot,
