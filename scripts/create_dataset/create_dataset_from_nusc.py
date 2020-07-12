@@ -100,7 +100,7 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
     nusc_version : str, optional
         Nuscenes version. v1.0-mini or v1.0-trainval, by default 'v1.0-mini'
     use_constant_feature : bool, optional
-        Whether to use constant feature, by default True
+        Whether to use constant feature, by default False
     use_intensity_feature : bool, optional
         Whether to use intensity feature, by default True
     end_id : int, optional
