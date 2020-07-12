@@ -32,7 +32,43 @@ except ImportError:
 def get_arrow_image(in_feature, out_feature, width=672, height=672,
                     grid_range=70., draw_target='instance', thresh=0.3,
                     viz_range=1/3., viz_all_grid=False):
-    """ Temporary for debug. Used to get visdom images from the training code.
+    """Visualize the direction of instance and heading with arrows.
+
+    Only supported in the following cases.
+        use_intensity_feature = True
+        use_constant_feature = False
+
+    TO DO
+        Supports all intensity and constant conditions.
+
+    Parameters
+    ----------
+    in_feature : numpy.ndarray
+    out_feature : numpy.ndarray
+    width : int, optional
+        feature map width, by default 672
+    height : int, optional
+        feature map height, by default 672
+    grid_range : floar, optional
+        feature map range, by default 70.
+    draw_target : str, optional
+        whether to visualize instance or heading, by default 'instance'
+    thresh : float, optional
+        Pixels above the threshold are classified as objects, by default 0.3
+    viz_range : float, optional
+        visualization range of feature_map, by default 1/3.
+    viz_all_grid : bool, optional
+        Whether to visualize non-object pixels, by default False
+
+    Returns
+    -------
+    img: numpy.ndarray
+        Image of instance or heading represented by an arrow.
+
+    Raises
+    ------
+    Exception
+        Width and height are not equal.
     """
 
     if width == height:

@@ -23,6 +23,29 @@ from utils.visualize_utils import get_arrow_image  # noqa
 
 
 class Trainer(object):
+        """CNN trainer.
+
+        Parameters
+        ----------
+        data_path : str
+            Training data path.
+        batch_size : int
+        max_epoch : int
+        pretrained_model : str
+            Pretrained model path.
+        train_data_num : int
+            Number of data used for training. Larger number if all data are used.
+        val_data_num : int
+            Number of data used for validation. Larger number if all data are used.
+        width : int
+            feature map width.
+        height :int
+            feature map height.
+        use_constant_feature : bool
+            Whether to use constant feature.
+        use_intensity_feature : bool
+            Whether to use intensity feature.
+        """
 
     def __init__(self, data_path, batch_size, max_epoch, pretrained_model,
                  train_data_num, val_data_num,
@@ -98,6 +121,19 @@ class Trainer(object):
             self.optimizer, lr_lambda=lambda epo: 0.9 ** epo)
 
     def get_arrow_image(self, in_feature, out_feature):
+        """Visualize the direction of instance and heading with arrows.
+
+        Parameters
+        ----------
+        in_feature : numpy.ndarray
+        out_feature : numpy.ndarray
+
+        Returns
+        -------
+        img: numpy.ndarray
+            Image of instance or heading represented by an arrow.
+        """
+
         img = get_arrow_image(in_feature, out_feature,
                               self.width, self.height, self.grid_range,
                               'heading')
@@ -105,6 +141,20 @@ class Trainer(object):
         return img
 
     def get_category_or_confidence_image(self, feature, thresh=0.3):
+        """Visualize category, confidece feature.
+
+        Parameters
+        ----------
+        feature : numpy.ndarray
+            category or confidence feature.
+        thresh : float, optional
+            Pixels above the threshold are classified as objects, by default 0.3
+
+        Returns
+        -------
+        img : numpy.ndarray
+            category or confindence image
+        """
         feature_np = feature.cpu().detach().numpy().copy()
         feature_np = feature_np.transpose(1, 2, 0)
         img = np.zeros(
@@ -115,6 +165,18 @@ class Trainer(object):
         return img
 
     def get_class_image(self, feature):
+        """Visualize class feature.
+
+        Parameters
+        ----------
+        feature : numpy.ndarray
+            class feature.
+
+        Returns
+        -------
+        img : numpy.ndarray
+            class image
+        """
         feature_np = feature.cpu().detach().numpy().copy()
         feature_np = feature_np.transpose(1, 2, 0)
         feature_np = np.argmax(feature_np, axis=2)[..., None]
@@ -131,6 +193,13 @@ class Trainer(object):
         return img
 
     def step(self, mode):
+        """Proceed with training or verification
+
+        Parameters
+        ----------
+        mode : str
+            Specify training or verification. 'train' or 'val'
+        """
         print('Start {}'.format(mode))
 
         if mode == 'train':
@@ -372,6 +441,8 @@ class Trainer(object):
                     'checkpoints/bcnn_bestmodel_' + self.time_now + '.pt')
 
     def train(self):
+        """Start training.
+        """
         for self.epo in range(self.max_epoch):
             self.step('train')
             self.step('val')
@@ -389,19 +460,19 @@ if __name__ == "__main__":
         help='Training data path',
         default='/media/kosuke/SANDISK/nusc/mini-6c-672')
     parser.add_argument('--batch_size', '-bs', type=int,
-                        help='max epoch',
+                        help='batch size',
                         default=1)
     parser.add_argument('--max_epoch', '-me', type=int,
                         help='max epoch',
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
-                        help='Pretrained model',
+                        help='Pretrained model path',
                         default='checkpoints/bcnn_latestmodel_20200619_1526.pt')
     parser.add_argument('--train_data_num', '-tn', type=int,
-                        help='How much data to use for training',
+                        help='Number of data used for training. Larger number if all data are used.',
                         default=1000000)
     parser.add_argument('--val_data_num', '-vn', type=int,
-                        help='How much data to use for testing',
+                        help='Nuber of  data used for validation. Larger number if all data are used.',
                         default=1000000)
     parser.add_argument('--width', type=int,
                         help='feature map width',

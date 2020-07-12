@@ -31,6 +31,26 @@ except ImportError:
 
 def add_noise_points(points, num_rand_samples=5,
                      min_distance=5, sigma=2, add_noise_rate=0.1):
+    """Add noise to the point cloud
+
+    Parameters
+    ----------
+    points : numpy.ndarray
+        Input point cloud. (n, 4)
+    num_rand_samples : int, optional
+        How many sample points to take at one angle, by default 5
+    min_distance : int, optional
+        Closest distance of noise, by default 5
+    sigma : int, optional
+        normal distribution of z, by default 2
+    add_noise_rate : float, optional
+        Percentage of angles to add noise, by default 0.1
+
+    Returns
+    -------
+    points : numpy.ndarray
+        Point cloud with added noise. (n, 4)
+    """
     max_height = np.max(points[:, 2])
     min_height = np.min(points[:, 2])
     mean_height = np.mean(points[:, 2])
@@ -61,9 +81,40 @@ def add_noise_points(points, num_rand_samples=5,
 
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
-                   use_constant_feature=True, use_intensity_feature=True,
+                   use_constant_feature=1, use_intensity_feature=1,
                    end_id=None, augmentation_num=0, add_noise=True):
+    """Create a learning dataset from Nuscens
 
+    Parameters
+    ----------
+    dataroot : str
+        Nuscenes dataroot path.
+    save_dir : str
+        Dataset save directory.
+    width : int, optional
+        feature map width, by default 672
+    height : int, optional
+        feature map height, by default 672
+    grid_range : float, optional
+        feature map range, by default 70.
+    nusc_version : str, optional
+        Nuscenes version. v1.0-mini or v1.0-trainval, by default 'v1.0-mini'
+    use_constant_feature : bool, optional
+        Whether to use constant feature, by default True
+    use_intensity_feature : bool, optional
+        Whether to use intensity feature, by default True
+    end_id : int, optional
+        How many data to generate. If None, all data, by default None
+    augmentation_num : int, optional
+        How many data augmentations for one sample, by default 0
+    add_noise : bool, optional
+        Whether to add noise to pointcloud, by default True
+
+    Raises
+    ------
+    Exception
+        Width and height are not equal
+    """
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
 
@@ -79,7 +130,6 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             'Currently only supported if width and height are equal')
 
     grid_length = 2. * grid_range / size
-    label_half_length = 0
     z_trans_range = 0.5
     sample_id = 0
     data_id = 0
@@ -160,30 +210,19 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                         box.corners().T[0] - box.corners().T[3])
                     box_corners = box.corners().astype(np.float32)
                     corners2d = box_corners[:2, :]
-                    # corners2d = box.corners()[:2, :].astype(np.float32)
                     box2d = corners2d.T[[2, 3, 7, 6]]
                     box2d_center = box2d.mean(axis=0)
                     yaw, pitch, roll = box.orientation.yaw_pitch_roll
-                    # print('--')
-                    # print(box.name)
-                    p1_reshape = box_corners
-                    out_feature = generate_out_feature(width, height, size, grid_centers,
-                                                       box_corners, box2d, box2d_center,
-                                                       pc_points, height_pt,
-                                                       label, label_half_length, yaw, out_feature)
-
-                    # generate_out_feature(width, height, size, grid_centers, pc.points,
-                    #                      box.corners(), height_pt,
-                    #                      label, label_half_length, yaw,
-                    #                      out_feature)
-                    # out_feature = out_feature.astype(np.float32)
+                    out_feature = generate_out_feature(
+                        size, grid_centers, box_corners,
+                        box2d, box2d_center, pc_points,
+                        height_pt, label, yaw, out_feature)
 
                 # feature_generator = fg.FeatureGenerator(
                 #     grid_range, width, height,
                 #     use_constant_feature, use_intensity_feature)
-
                 feature_generator = fgpb.FeatureGenerator(
-                    grid_range, width, height)
+                    grid_range, size, size)
                 in_feature = feature_generator.generate(
                     pc_points.T,
                     use_constant_feature, use_intensity_feature)
@@ -198,9 +237,6 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                 in_feature = np.array(in_feature).reshape(
                     channels, size, size).astype(np.float16)
                 in_feature = in_feature.transpose(1, 2, 0)
-                # instance_pt is flipped due to flip
-                # out_feature = np.flip(np.flip(out_feature, axis=0), axis=1)
-                # out_feature[:, :, 1:3] *= -1
                 np.save(os.path.join(
                     save_dir, 'in_feature/{:05}'.format(data_id)),
                     in_feature)
@@ -220,22 +256,55 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
 
 
 @numba.jit(nopython=True)
-def generate_out_feature(
-        width, height, size, grid_centers, box_corners, box2d, box2d_center, pc_points,
-        height_pt, label, label_half_length, yaw, out_feature):
+def generate_out_feature(size, grid_centers, box_corners,
+                         box2d, box2d_center, pc_points,
+                         height_pt, label, yaw, out_feature):
+    """Generate out_feature.
+
+    Parameters
+    ----------
+    size : int
+        feature map size
+    grid_centers : numpy.ndarray
+        center coordinates of feature_map grid
+    box_corners : numpy.ndarray
+        The coordinates of each corner of the object's box.
+    box2d : numpy.ndarray
+        The x,y coordinates of the object's box
+    box2d_center : numpy.ndarray
+        Center x,y coordinates of object's box
+    pc_points : numpy.ndarray
+        Input point cloud. (4, n)
+    height_pt : float
+        Height of object.
+    label : int
+        Object label. classify_pt
+    yaw : float
+        Rotation of the yaw of the object. heading_pt.
+    out_feature : numpy.ndarray
+        Output features. category, instance(x, y), confidence, classify, heading(x, y), height
+
+    Returns
+    -------
+    out_feature : numpy.ndarray
+        Output features. category, instance(x, y), confidence, classify, heading(x, y), height
+    """
 
     box2d_left = box2d[:, 0].min()
     box2d_right = box2d[:, 0].max()
     box2d_top = box2d[:, 1].max()
     box2d_bottom = box2d[:, 1].min()
 
-    "https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/utils/geometry_utils.py"
     def points_in_box(corners, points, wlh_factor=1.0):
-        """
-        Checks whether points are inside the box.
+        """Checks whether points are inside the box.
+
+        Partially changed the function implemented in
+        "https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/utils/geometry_utils.py"
+
         Picks one corner as reference (p1) and computes the vector to a target point (v).
         Then for each of the 3 axes, project v onto the axis and compare the length.
         Inspired by: https://math.stackexchange.com/a/1552579
+
         :param box: <Box>.
         :param points: <np.float: 3, n>.
         :param wlh_factor: Inflates or deflates the box.
@@ -265,6 +334,8 @@ def generate_out_feature(
         return mask
 
     def points_in_box2d(corners, box2d, points):
+        """2D version of points_in_box
+        """
         p1 = box2d[0]
         p_x = box2d[1]
         p_y = box2d[3]
@@ -284,13 +355,17 @@ def generate_out_feature(
         return mask
 
     def F2I(val, orig, scale):
+        """Convert points in lidar coordinate system to feature_map coordinate system.
+        """
         return int(np.floor((orig - val) * scale))
 
     def Pixel2pc(in_pixel, in_size, out_range):
+        """Convert points in feature_map coordinate system to lidar coordinate system.
+        """
         res = 2.0 * out_range / in_size
         return out_range - (in_pixel + 0.5) * res
 
-    inv_res = 0.5 * width / 70.
+    inv_res = 0.5 * size / 70.
     res = 1.0 / inv_res
     max_length = abs(2 * res)
 
@@ -316,10 +391,8 @@ def generate_out_feature(
         for j in range(
                 search_area_top_idx - 1, search_area_bottom_idx + 1):
             if 0 <= i and i < size and 0 <= j and j < size:
-                # grid_center = np.array(
-                #     [grid_centers[i], grid_centers[j]])
-                grid_center_x = Pixel2pc(i, float(height), 70)
-                grid_center_y = Pixel2pc(j, float(width), 70)
+                grid_center_x = Pixel2pc(i, float(size), 70)
+                grid_center_y = Pixel2pc(j, float(size), 70)
 
                 if max_length < np.abs(box2d_center[0] - grid_center_x):
                     x_scale = max_length / \
@@ -334,14 +407,9 @@ def generate_out_feature(
 
                 normalized_yaw = math.atan(math.sin(yaw) / math.cos(yaw))
 
-                # normalized_yaw =  math.atan2(math.sin(yaw), math.cos(yaw))
-                # while normalized_yaw < -pi/2.0 :
-                #     normalized_yaw = normalized_yaw + pi
-                # while pi/2.0 < normalized_yaw :
-                #     normalized_yaw = normalized_yaw - pi
-
-                mask = points_in_box2d(box_corners, box2d,
-                                       np.array([grid_center_x, grid_center_y, 0]).astype(np.float32))
+                mask = points_in_box2d(
+                    box_corners, box2d,
+                    np.array([grid_center_x, grid_center_y, 0]).astype(np.float32))
 
                 if mask:
                     out_feature[i, j, 0] = 1.  # category_pt
@@ -351,9 +419,6 @@ def generate_out_feature(
                         (box2d_center[1] - grid_center_y) * -1) * min(x_scale, y_scale)
                     out_feature[i, j, 3] = 1.  # confidence_pt
                     out_feature[i, j, 4] = label  # classify_pt
-                    # out_feature[i, j, 5] = math.atan2(-math.cos(yaw), -math.sin(yaw))  # heading_pt (unused)
-                    # out_feature[i, j, 5] = -math.sin(normalized_yaw * 2.0)
-                    # out_feature[i, j, 6] = -math.cos(normalized_yaw * 2.0)
                     out_feature[i, j, 5] = math.cos(normalized_yaw * 2.0)
                     out_feature[i, j, 6] = math.sin(normalized_yaw * 2.0)
                     out_feature[i, j, 7] = height_pt  # height_pt
