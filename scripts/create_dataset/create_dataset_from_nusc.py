@@ -29,10 +29,40 @@ except ImportError:
             break
 
 
+def add_noise_points(points, num_rand_samples=5,
+                     min_distance=5, sigma=2, add_noise_rate=0.1):
+    max_height = np.max(points[:, 2])
+    min_height = np.min(points[:, 2])
+    mean_height = np.mean(points[:, 2])
+
+    distances = np.linalg.norm(
+        np.hstack([points[:, 0:1], points[:, 1:2]]), axis=1)
+    max_distance = np.max(distances)
+
+    noise_points = []
+    for theta in range(360):
+        if np.random.rand() > add_noise_rate:
+            continue
+        distance = np.min(np.random.uniform(
+            min_distance, max_distance, num_rand_samples))
+        z = np.random.normal(mean_height, sigma)
+        while min_height > z or z > max_height:
+            z = np.random.normal(mean_height, sigma)
+        x = distance * np.cos(theta)
+        y = distance * np.sin(theta)
+        i = points[np.random.randint(0, points.shape[0]), 3]
+        noise_points.append([x, y, z, i])
+
+    noise_points = np.array(noise_points)
+    points = np.vstack([points, noise_points])
+
+    return points
+
+
 def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
                    nusc_version='v1.0-mini',
                    use_constant_feature=True, use_intensity_feature=True,
-                   end_id=None, augmentation_num=0):
+                   end_id=None, augmentation_num=0, add_noise=True):
 
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
@@ -81,6 +111,8 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
             q = Quaternion()
             for augmentation_idx in range(augmentation_num + 1):
                 pc = copy.copy(pc_raw)
+                if add_noise:
+                    pc.points = add_noise_points(pc.points.T).T
                 boxes = copy.copy(boxes_raw)
                 if augmentation_idx > 0:
                     z_trans = (np.random.rand() - 0.5) * 2 * z_trans_range
@@ -363,6 +395,9 @@ if __name__ == '__main__':
     parser.add_argument('--augmentation_num', '-an', type=int,
                         help='How many data augmentations for one sample',
                         default=0)
+    parser.add_argument('--add_noise', type=int,
+                        help='Whether to add noise to pointcloud',
+                        default=1)
 
     args = parser.parse_args()
     create_dataset(dataroot=args.dataroot,
@@ -374,4 +409,5 @@ if __name__ == '__main__':
                    use_constant_feature=args.use_constant_feature,
                    use_intensity_feature=args.use_intensity_feature,
                    end_id=args.end_id,
-                   augmentation_num=args.augmentation_num)
+                   augmentation_num=args.augmentation_num,
+                   add_noise=args.add_noise)
