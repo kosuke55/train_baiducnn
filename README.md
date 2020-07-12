@@ -59,6 +59,6 @@ onnx2trt <your_trained_model.onnx> -o <your_trained_model.engine>
 
 [2]:https://github.com/k0suke-murakami/autoware_perception/tree/feature/integration_baidu_seg/lidar_apollo_cnn_seg_detect
 
-[bat67/pytorch-FCN-easiest-demo][3]  
+[yunlongdong/FCN-pytorch onehot][3]  
 
-[3]:https://github.com/bat67/pytorch-FCN-easiest-demo
+[3]:https://github.com/yunlongdong/FCN-pytorch/blob/master/onehot.py

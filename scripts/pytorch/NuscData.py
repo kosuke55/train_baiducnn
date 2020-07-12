@@ -4,29 +4,57 @@
 import os
 
 import numpy as np
-import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 
 
 def load_dataset(data_path, batch_size):
+    """load training and validation dataset
+
+    Parameters
+    ----------
+    data_path : str
+    batch_size : int
+
+    Returns
+    -------
+    train_dataloader: torch.utils.data.DataLoader
+    val_dataloader: torch.utils.data.DataLoader
+    """
     transform = transforms.Compose([
         transforms.ToTensor()])
     nusc = NuscDataset(data_path, transform)
 
     train_size = int(0.9 * len(nusc))
-    test_size = len(nusc) - train_size
-    train_dataset, test_dataset = random_split(nusc, [train_size, test_size])
+    val_size = len(nusc) - train_size
+    train_dataset, val_dataset = random_split(nusc, [train_size, val_size])
 
     train_dataloader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    test_dataloader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_dataloader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
-    return train_dataloader, test_dataloader
+    return train_dataloader, val_dataloader
 
 
-def onehot(data, n):
+def onehot(data, n=5):
+    """convert label to onehot_vector
+
+    Originally implemented in
+    https://github.com/yunlongdong/FCN-pytorch/blob/master/onehot.py
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        np.ndarray with int stored in label
+    n : int, optional
+        [description], by default 5
+
+    Returns
+    -------
+    buf numpy.ndarray
+        onehot vector of class
+    """
     buf = np.zeros(data.shape + (n, ))
     nmsk = np.arange(data.size) * n + data.ravel()
     buf.ravel()[nmsk] = 1
@@ -34,6 +62,15 @@ def onehot(data, n):
 
 
 class NuscDataset(Dataset):
+    """Nuscenes dataset
+
+    Parameters
+    ----------
+    data_path : str
+        Path of generated dataset.
+    transform : torchvision.transforms.Compose, optional
+        Currently it only converts a numpy.ndarray to a torch tensor, not really needed., by default None
+    """
     def __init__(self, data_path, transform=None):
         self.data_path = data_path
         self.transform = transform
