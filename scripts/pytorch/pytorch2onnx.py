@@ -10,6 +10,7 @@ import torch.onnx
 from BCNN import BCNN
 from collections import OrderedDict
 
+
 def fix_model_state_dict(state_dict):
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():

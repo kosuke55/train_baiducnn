@@ -71,6 +71,7 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
         Width and height are not equal.
 
     """
+    print('drawing axis image...')
     if width == height:
         size = width
     else:

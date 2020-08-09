@@ -325,7 +325,9 @@ class Trainer(object):
                              ...].cpu().detach().numpy().copy()
             in_feature_img[in_feature_img > 0] = 255
 
-            if np.mod(index, len(dataloader) - 1) == 0:
+            arrow_gt_image = None
+            arrow_image = None
+            if np.mod(index, len(dataloader) - 1) == 0 and index != 0:
                 arrow_gt_image = self.get_arrow_image(
                     in_feature[0, ...].cpu().detach(
                     ).numpy().transpose(1, 2, 0),
@@ -362,11 +364,13 @@ class Trainer(object):
                                 win='{}_class'.format(mode),
                                 opts=dict(
                                     title='{} class pred(GT, Pred)'.format(mode)))
-                if np.mod(index, len(dataloader) - 1) == 0:
-                    self.vis.images([arrow_gt_image, arrow_image],
-                                    win='{}_arrow (GT, Pred)'.format(mode),
-                                    opts=dict(
-                                        title='{} arrow (GT, Pred)'.format(mode)))
+                if arrow_image is not None \
+                   and arrow_gt_image is not None:
+                    self.vis.images(
+                        [arrow_gt_image, arrow_image],
+                        win='{}_arrow (GT, Pred)'.format(mode),
+                        opts=dict(
+                            title='{} arrow (GT, Pred)'.format(mode)))
 
             if mode == 'train':
                 if index == self.train_data_num - 1:
@@ -448,8 +452,7 @@ class Trainer(object):
                     'checkpoints/bcnn_bestmodel_' + self.time_now + '.pt')
 
     def train(self):
-        """Start training.
-        """
+        """Start training."""
         for self.epo in range(self.max_epoch):
             self.step('train')
             self.step('val')
