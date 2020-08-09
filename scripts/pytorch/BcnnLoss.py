@@ -8,8 +8,8 @@ from torch.nn import Module
 
 
 class BcnnLoss(Module):
-    """Loss function
-    """
+    """Loss function"""
+
     def __init__(self):
         super(BcnnLoss, self).__init__()
 

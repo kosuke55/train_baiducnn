@@ -31,7 +31,7 @@ except ImportError:
 
 def get_arrow_image(in_feature, out_feature, width=672, height=672,
                     grid_range=70., draw_target='instance', thresh=0.3,
-                    viz_range=1/3., viz_all_grid=False):
+                    viz_range=1 / 3., viz_all_grid=False):
     """Visualize the direction of instance and heading with arrows.
 
     Only supported in the following cases.
@@ -69,8 +69,8 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
     ------
     Exception
         Width and height are not equal.
-    """
 
+    """
     if width == height:
         size = width
     else:
@@ -292,10 +292,11 @@ def viz_inference_feature(
                               length_includes_head=True,
                               color='k')
 
-        print('instance norm \nmean: {}\nmax: {}\nmin: {}'.format(np.mean(instance_norms),
-                                                                  np.max(
-                                                                      instance_norms),
-                                                                  np.min(instance_norms)))
+        print('instance norm \nmean: {}\nmax: {}\nmin: {}'.format(
+            np.mean(instance_norms),
+            np.max(
+                instance_norms),
+            np.min(instance_norms)))
     plt.show()
 
 

@@ -23,29 +23,32 @@ from utils.visualize_utils import get_arrow_image  # noqa
 
 
 class Trainer(object):
-        """CNN trainer.
+    """CNN trainer.
 
-        Parameters
-        ----------
-        data_path : str
-            Training data path.
-        batch_size : int
-        max_epoch : int
-        pretrained_model : str
-            Pretrained model path.
-        train_data_num : int
-            Number of data used for training. Larger number if all data are used.
-        val_data_num : int
-            Number of data used for validation. Larger number if all data are used.
-        width : int
-            feature map width.
-        height :int
-            feature map height.
-        use_constant_feature : bool
-            Whether to use constant feature.
-        use_intensity_feature : bool
-            Whether to use intensity feature.
-        """
+    Parameters
+    ----------
+    data_path : str
+        Training data path.
+    batch_size : int
+    max_epoch : int
+    pretrained_model : str
+        Pretrained model path.
+    train_data_num : int
+        Number of data used for training.
+        Larger number if all data are used.
+    val_data_num : int
+        Number of data used for validation.
+        Larger number if all data are used.
+    width : int
+        feature map width.
+    height :int
+        feature map height.
+    use_constant_feature : bool
+        Whether to use constant feature.
+    use_intensity_feature : bool
+        Whether to use intensity feature.
+
+    """
 
     def __init__(self, data_path, batch_size, max_epoch, pretrained_model,
                  train_data_num, val_data_num,
@@ -132,8 +135,8 @@ class Trainer(object):
         -------
         img: numpy.ndarray
             Image of instance or heading represented by an arrow.
-        """
 
+        """
         img = get_arrow_image(in_feature, out_feature,
                               self.width, self.height, self.grid_range,
                               'heading')
@@ -148,12 +151,14 @@ class Trainer(object):
         feature : numpy.ndarray
             category or confidence feature.
         thresh : float, optional
-            Pixels above the threshold are classified as objects, by default 0.3
+            Pixels above the threshold are classified as objects,
+            by default 0.3
 
         Returns
         -------
         img : numpy.ndarray
             category or confindence image
+
         """
         feature_np = feature.cpu().detach().numpy().copy()
         feature_np = feature_np.transpose(1, 2, 0)
@@ -176,6 +181,7 @@ class Trainer(object):
         -------
         img : numpy.ndarray
             class image
+
         """
         feature_np = feature.cpu().detach().numpy().copy()
         feature_np = feature_np.transpose(1, 2, 0)
@@ -199,6 +205,7 @@ class Trainer(object):
         ----------
         mode : str
             Specify training or verification. 'train' or 'val'
+
         """
         print('Start {}'.format(mode))
 

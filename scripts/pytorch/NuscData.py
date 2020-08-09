@@ -9,7 +9,7 @@ from torchvision import transforms
 
 
 def load_dataset(data_path, batch_size):
-    """load training and validation dataset
+    """Load training and validation dataset.
 
     Parameters
     ----------
@@ -20,6 +20,7 @@ def load_dataset(data_path, batch_size):
     -------
     train_dataloader: torch.utils.data.DataLoader
     val_dataloader: torch.utils.data.DataLoader
+
     """
     transform = transforms.Compose([
         transforms.ToTensor()])
@@ -69,7 +70,9 @@ class NuscDataset(Dataset):
     data_path : str
         Path of generated dataset.
     transform : torchvision.transforms.Compose, optional
-        Currently it only converts a numpy.ndarray to a torch tensor, not really needed., by default None
+        Currently it only converts a numpy.ndarray to a torch tensor,
+        not really needed., by default None
+
     """
     def __init__(self, data_path, transform=None):
         self.data_path = data_path

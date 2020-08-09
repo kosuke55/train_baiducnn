@@ -15,7 +15,9 @@ class BCNN(nn.Module):
         Number of input feature channels, by default 8
     n_class : int
         Number of classes, by default 5
+
     """
+
     def __init__(self, in_channels=8, n_class=5):
         super().__init__()
         self.n_class = n_class

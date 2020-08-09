@@ -50,6 +50,7 @@ def add_noise_points(points, num_rand_samples=5,
     -------
     points : numpy.ndarray
         Point cloud with added noise. (n, 4)
+
     """
     max_height = np.max(points[:, 2])
     min_height = np.min(points[:, 2])
@@ -114,6 +115,7 @@ def create_dataset(dataroot, save_dir, width=672, height=672, grid_range=70.,
     ------
     Exception
         Width and height are not equal
+
     """
     os.makedirs(os.path.join(save_dir, 'in_feature'), exist_ok=True)
     os.makedirs(os.path.join(save_dir, 'out_feature'), exist_ok=True)
@@ -282,35 +284,39 @@ def generate_out_feature(size, grid_centers, box_corners,
     yaw : float
         Rotation of the yaw of the object. heading_pt.
     out_feature : numpy.ndarray
-        Output features. category, instance(x, y), confidence, classify, heading(x, y), height
+        Output features. category, instance(x, y),
+        confidence, classify, heading(x, y), height
 
     Returns
     -------
     out_feature : numpy.ndarray
-        Output features. category, instance(x, y), confidence, classify, heading(x, y), height
-    """
+        Output features. category, instance(x, y),
+        confidence, classify, heading(x, y), height
 
+    """
     box2d_left = box2d[:, 0].min()
     box2d_right = box2d[:, 0].max()
     box2d_top = box2d[:, 1].max()
     box2d_bottom = box2d[:, 1].min()
 
     def points_in_box(corners, points, wlh_factor=1.0):
-        """Checks whether points are inside the box.
+        """Check whether points are inside the box.
 
         Partially changed the function implemented in
         "https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/utils/geometry_utils.py"
 
-        Picks one corner as reference (p1) and computes the vector to a target point (v).
-        Then for each of the 3 axes, project v onto the axis and compare the length.
+        Picks one corner as reference (p1) and computes
+        the vector to a target point (v).
+        Then for each of the 3 axes, project v onto the axis
+        and compare the length.
         Inspired by: https://math.stackexchange.com/a/1552579
 
         :param box: <Box>.
         :param points: <np.float: 3, n>.
         :param wlh_factor: Inflates or deflates the box.
         :return: <np.bool: n, >.
-        """
 
+        """
         p1 = corners[:, 0]
         p_x = corners[:, 4]
         p_y = corners[:, 1]
@@ -334,8 +340,7 @@ def generate_out_feature(size, grid_centers, box_corners,
         return mask
 
     def points_in_box2d(corners, box2d, points):
-        """2D version of points_in_box
-        """
+        """2D version of points_in_box"""
         p1 = box2d[0]
         p_x = box2d[1]
         p_y = box2d[3]
@@ -355,13 +360,12 @@ def generate_out_feature(size, grid_centers, box_corners,
         return mask
 
     def F2I(val, orig, scale):
-        """Convert points in lidar coordinate system to feature_map coordinate system.
-        """
+        """Convert points in lidar coordinate system to feature_map coordinate system."""
         return int(np.floor((orig - val) * scale))
 
     def Pixel2pc(in_pixel, in_size, out_range):
-        """Convert points in feature_map coordinate system to lidar coordinate system.
-        """
+        """Convert points in feature_map coordinate system to lidar coordinate system."""
+
         res = 2.0 * out_range / in_size
         return out_range - (in_pixel + 0.5) * res
 
