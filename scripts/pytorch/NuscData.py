@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
+from pathlib import Path
 
 import numpy as np
 from torch.utils.data import DataLoader, Dataset, random_split
@@ -39,7 +39,7 @@ def load_dataset(data_path, batch_size):
 
 
 def onehot(data, n=5):
-    """convert label to onehot_vector
+    """Convert label to onehot_vector
 
     Originally implemented in
     https://github.com/yunlongdong/FCN-pytorch/blob/master/onehot.py
@@ -55,6 +55,7 @@ def onehot(data, n=5):
     -------
     buf numpy.ndarray
         onehot vector of class
+
     """
     buf = np.zeros(data.shape + (n, ))
     nmsk = np.arange(data.size) * n + data.ravel()
@@ -74,22 +75,25 @@ class NuscDataset(Dataset):
         not really needed., by default None
 
     """
+
     def __init__(self, data_path, transform=None):
         self.data_path = data_path
         self.transform = transform
+        self.in_feature_paths = list(
+            sorted(Path(self.data_path).glob("in_feature/*.npy")))
 
     def __len__(self):
-        return len(os.listdir(os.path.join(self.data_path, 'in_feature')))
+        return len(self.in_feature_paths)
 
     def __getitem__(self, idx):
-        data_name = os.listdir(os.path.join(self.data_path, 'in_feature'))[idx]
+        in_feature_path = self.in_feature_paths[idx]
+        out_feature_path = in_feature_path.parent.parent / \
+            'out_feature' / in_feature_path.name
 
-        in_feature = np.load(
-            os.path.join(self.data_path, "in_feature/", data_name))
+        in_feature = np.load(str(in_feature_path))
         in_feature = in_feature.astype(np.float32)
 
-        out_feature = np.load(
-            os.path.join(self.data_path, "out_feature/", data_name))
+        out_feature = np.load(str(out_feature_path))
         one_hot_class = onehot(out_feature[..., 4].astype(np.int8), 5)
 
         out_feature = np.concatenate(
