@@ -268,7 +268,12 @@ class Trainer(object):
             criterion = BcnnLoss().to(self.device)
             in_feature = in_feature.to(self.device)
             out_feature_gt = out_feature_gt.to(self.device)
-            output = self.model(in_feature)
+
+            if mode == 'train':
+                output = self.model(in_feature)
+            elif mode == 'val':
+                with torch.no_grad():
+                    output = self.model(in_feature)
 
             (category_loss, confidence_loss, class_loss, instance_x_loss,
              instance_y_loss, heading_x_loss, heading_y_loss, height_loss) \
