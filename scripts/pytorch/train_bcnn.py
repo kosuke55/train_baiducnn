@@ -123,7 +123,7 @@ class Trainer(object):
         self.scheduler = optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lambda epo: 0.9 ** epo)
 
-    def get_arrow_image(self, in_feature, out_feature):
+    def get_arrow_image(self, in_feature, out_feature, timeout=None):
         """Visualize the direction of instance and heading with arrows.
 
         Parameters
@@ -139,9 +139,12 @@ class Trainer(object):
         """
         img = get_arrow_image(in_feature, out_feature,
                               self.width, self.height, self.grid_range,
-                              'heading')
-        img = img.transpose(2, 0, 1)
-        return img
+                              'heading', timeout=timeout)
+        if img is not None:
+            img = img.transpose(2, 0, 1)
+            return img
+        else:
+            return None
 
     def get_category_or_confidence_image(self, feature, thresh=0.3):
         """Visualize category, confidece feature.
@@ -332,13 +335,13 @@ class Trainer(object):
                     in_feature[0, ...].cpu().detach(
                     ).numpy().transpose(1, 2, 0),
                     out_feature_gt[0, ...].cpu().detach(
-                    ).numpy().transpose(1, 2, 0))
+                    ).numpy().transpose(1, 2, 0), timeout=5)
 
                 arrow_image = self.get_arrow_image(
                     in_feature[0, ...].cpu().detach(
                     ).numpy().transpose(1, 2, 0),
                     output[0, ...].cpu().detach(
-                    ).numpy().transpose(1, 2, 0))
+                    ).numpy().transpose(1, 2, 0), timeout=5)
 
             if np.mod(index, self.vis_interval) == 0:
                 print('epoch {}, {}/{}, {}_loss is {}'.format(

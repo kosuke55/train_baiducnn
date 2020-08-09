@@ -8,6 +8,7 @@ import os
 import os.path as osp
 import math
 import sys
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +32,7 @@ except ImportError:
 
 def get_arrow_image(in_feature, out_feature, width=672, height=672,
                     grid_range=70., draw_target='instance', thresh=0.3,
-                    viz_range=1 / 3., viz_all_grid=False):
+                    viz_range=1 / 3., viz_all_grid=False, timeout=None):
     """Visualize the direction of instance and heading with arrows.
 
     Only supported in the following cases.
@@ -71,7 +72,8 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
         Width and height are not equal.
 
     """
-    print('drawing axis image...')
+    print('drawing arrow image...')
+    start_time = time.time()
     if width == height:
         size = width
     else:
@@ -128,6 +130,12 @@ def get_arrow_image(in_feature, out_feature, width=672, height=672,
                           head_length=0.05,
                           length_includes_head=True,
                           color='k')
+
+                if timeout is not None:
+                    if time.time() - start_time > timeout:
+                        print('{}s have passed, so drawing arrow times out.'.format(
+                            timeout))
+                        return None
 
     fig.canvas.draw()
     image = np.array(fig.canvas.renderer.buffer_rgba())[..., :3]
