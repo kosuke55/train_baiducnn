@@ -2,6 +2,8 @@
 
 Train lidar\_apollo\_instance\_segmentation CNN with Nuscenes.  
 
+<img src="https://user-images.githubusercontent.com/39142679/85943007-32e7a280-b968-11ea-9d9e-51e9b157bfe5.gif" width="1000">  
+
 ## Getting Started  
 Only supports python3.  
 
@@ -47,8 +49,6 @@ onnx2trt <your_trained_model.onnx> -o <your_trained_model.engine>
 ```
 
 5) Run [lidar_apollo_instance_segmentation](https://github.com/tier4/AutowareArchitectureProposal/tree/master/src/perception/object_recognition/detection/lidar_apollo_instance_segmentation) with <your_trained_model.engine>  
-
-<img src="https://user-images.githubusercontent.com/39142679/81552155-ed721480-93bd-11ea-9b9d-88e88dab2ecf.gif" width="680">  
 
 ## reference
 [apollo 3D Obstacle Percption description][1]  
