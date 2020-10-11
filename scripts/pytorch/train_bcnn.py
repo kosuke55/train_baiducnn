@@ -87,9 +87,9 @@ class Trainer(object):
             if pretrained_model == 'checkpoints/bestmodel.pt':
                 print('Downloading ', pretrained_model)
                 gdown.cached_download(
-                    'https://drive.google.com/uc?export=download&id=19IPtsVes3w-qogsiJToHmLrjCAdVEl9K',
+                    'https://drive.google.com/uc?export=download&id=1RV5SHRohYc2Z-vyTNsDp69yw8x97hZRK',
                     pretrained_model,
-                    md5='b124dab72fd6f2b642c6e46e5b142ebf')
+                    md5='b1f211762b806e7d693ca62a534c4077')
                 self.model.load_state_dict(torch.load(pretrained_model))
 
         self.train_data_num = train_data_num
@@ -485,7 +485,7 @@ if __name__ == "__main__":
                         default=1000000)
     parser.add_argument('--pretrained_model', '-p', type=str,
                         help='Pretrained model path',
-                        default='checkpoints/bcnn_latestmodel_20200619_1526.pt')
+                        default='checkpoints/bestmodel.pt')
     parser.add_argument('--train_data_num', '-tn', type=int,
                         help='Number of data used for training. Larger number if all data are used.',
                         default=1000000)
